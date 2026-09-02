@@ -1,0 +1,21 @@
+import type { ReactNode } from 'react'
+import { Navigate } from 'react-router-dom'
+import { useAuth } from '../firebase/AuthContext'
+
+export function ProtectedRoute({ children, adminOnly = false }: { children: ReactNode; adminOnly?: boolean }) {
+  const { user, profile, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-bg)' }}>
+        <p className="text-[var(--color-text-secondary)]">Cargando…</p>
+      </div>
+    )
+  }
+
+  if (!user) return <Navigate to="/login" replace />
+  if (profile && profile.activo === false) return <Navigate to="/login" replace />
+  if (adminOnly && profile?.rol !== 'admin') return <Navigate to="/" replace />
+
+  return <>{children}</>
+}
