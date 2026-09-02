@@ -1,0 +1,1 @@
+var e=[{code:`COP`,label:`Peso colombiano`,symbol:`$`},{code:`EUR`,label:`Euro`,symbol:`€`},{code:`USD`,label:`Dólar estadounidense`,symbol:`US$`},{code:`CHF`,label:`Franco suizo`,symbol:`CHF`}];export{e as t};
