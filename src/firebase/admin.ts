@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, orderBy, query, setDoc, updateDoc } from 'firebase/firestore'
+import { collection, doc, getDocs, orderBy, query, setDoc, updateDoc } from 'firebase/firestore/lite'
 import { db } from './config'
 import type { InviteCode, UserProfile } from '../types/models'
 

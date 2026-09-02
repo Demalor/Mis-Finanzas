@@ -13,7 +13,8 @@ const ThemeContext = createContext<ThemeContextValue | null>(null)
 function getInitialTheme(): Theme {
   const stored = localStorage.getItem(STORAGE_KEY)
   if (stored === 'light' || stored === 'dark') return stored
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  // Sin preferencia guardada: la app arranca en modo oscuro por defecto.
+  return 'dark'
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {

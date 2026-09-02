@@ -25,12 +25,12 @@ export function BudgetsTab() {
   const categoriesWithoutBudget = expenseCategories.filter((c) => !monthBudgets.some((b) => b.categoryId === c.id))
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <p className="text-[var(--color-text-secondary)] text-[15px]">Define un límite mensual por categoría</p>
-        <div className="flex items-center gap-3">
-          <MonthSelector month={month} onChange={setMonth} />
-          <Button onClick={() => setCreating(true)} disabled={categoriesWithoutBudget.length === 0}>
+    <div className="flex flex-col gap-[var(--sp-5)]">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-[var(--sp-3)]">
+        <p className="text-[var(--color-text-secondary)] text-[var(--fs-sm)]">Define un límite mensual por categoría</p>
+        <div className="flex flex-wrap items-center gap-[var(--sp-3)]">
+          <MonthSelector month={month} onChange={setMonth} className="flex-1 min-w-[11rem] md:flex-none md:w-fit" />
+          <Button onClick={() => setCreating(true)} disabled={categoriesWithoutBudget.length === 0} className="shrink-0">
             + Nuevo
           </Button>
         </div>
@@ -44,7 +44,7 @@ export function BudgetsTab() {
           action={<Button onClick={() => setCreating(true)}>Crear presupuesto</Button>}
         />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="card-grid">
           {monthBudgets.map((b) => {
             const category = categories.find((c) => c.id === b.categoryId)
             const spent = spentByCategory(b.categoryId)
@@ -56,13 +56,13 @@ export function BudgetsTab() {
             return (
               <Card key={b.id} padding="md">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="font-semibold text-[16px]">
+                  <span className="font-semibold text-[var(--fs-md)]">
                     {category?.icon} {category?.name ?? 'Categoría eliminada'}
                   </span>
                   <button
                     onClick={() => deleteBudget(b.id)}
                     aria-label="Eliminar presupuesto"
-                    className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-red-50 text-[16px]"
+                    className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-[var(--color-expense-soft)] text-[var(--fs-md)]"
                     style={{ color: 'var(--color-expense)' }}
                   >
                     🗑️
@@ -73,11 +73,11 @@ export function BudgetsTab() {
                     className="h-full rounded-full transition-all"
                     style={{
                       width: `${pct}%`,
-                      background: overBudget ? 'var(--color-expense)' : nearLimit ? '#FF9500' : 'var(--color-accent)',
+                      background: overBudget ? 'var(--color-expense)' : nearLimit ? 'var(--color-warn)' : 'var(--color-accent)',
                     }}
                   />
                 </div>
-                <div className="grid grid-cols-3 text-center gap-2 text-[14px]">
+                <div className="grid grid-cols-3 text-center gap-2 text-[var(--fs-sm)]">
                   <div>
                     <div className="text-[var(--color-text-secondary)]">Gastado</div>
                     <div className="font-semibold">{formatAmount(spent, 'COP')}</div>
@@ -94,12 +94,12 @@ export function BudgetsTab() {
                   </div>
                 </div>
                 {overBudget && (
-                  <p className="mt-3 text-[14px] font-semibold" style={{ color: 'var(--color-expense)' }}>
+                  <p className="mt-3 text-[var(--fs-sm)] font-semibold" style={{ color: 'var(--color-expense)' }}>
                     ⚠️ Superaste el presupuesto de esta categoría.
                   </p>
                 )}
                 {nearLimit && (
-                  <p className="mt-3 text-[14px] font-semibold" style={{ color: '#FF9500' }}>
+                  <p className="mt-3 text-[var(--fs-sm)] font-semibold" style={{ color: 'var(--color-warn)' }}>
                     ⚠️ Estás cerca del límite de esta categoría.
                   </p>
                 )}
@@ -143,9 +143,9 @@ function NewBudgetModal({
 
   return (
     <Modal open={open} onClose={onClose} title="Nuevo presupuesto">
-      <p className="text-[14px] text-[var(--color-text-secondary)] mb-4">Mes: {month}</p>
+      <p className="text-[var(--fs-sm)] text-[var(--color-text-secondary)] mb-4">Mes: {month}</p>
       {categories.length === 0 ? (
-        <p className="text-[15px] text-[var(--color-text-secondary)]">Ya creaste un presupuesto para todas las categorías de gasto este mes.</p>
+        <p className="text-[var(--fs-base)] text-[var(--color-text-secondary)]">Ya creaste un presupuesto para todas las categorías de gasto este mes.</p>
       ) : (
         <>
           <Field label="Categoría">

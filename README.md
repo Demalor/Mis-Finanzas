@@ -13,7 +13,7 @@ npm install
 npm run dev
 ```
 
-Luego abre la dirección que aparece en la terminal (normalmente http://localhost:5173).
+Luego abre la dirección que aparece en la terminal (normalmente http://localhost:5173, o el puerto que Vite elija).
 
 ## Cómo generar una versión para producción
 

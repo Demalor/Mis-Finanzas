@@ -13,25 +13,26 @@ export function NoveltiesModal() {
 
   return (
     <Modal open onClose={() => setDismissed(true)} title="✨ Novedades">
-      <p className="text-[15px] mb-5">
-        ¡Hola{profile.nombre ? `, ${profile.nombre.split(' ')[0]}` : ''}! 👋 Soy Demalor, y quería contarte con mucho
-        gusto todo lo nuevo que le acabo de agregar a la app:
+      <p className="text-[var(--fs-base)] mb-5">
+        ¡Hola{profile.nombre ? `, ${profile.nombre.split(' ')[0]}` : ''}! 👋 Soy Demalor. Le dediqué un buen rato a
+        mejorar la app, por dentro y por fuera, y quería contarte lo que cambió:
       </p>
       <div className="flex flex-col gap-4 mb-6">
         {NOVELTIES.map((n) => (
           <div key={n.title} className="flex gap-3">
-            <div className="w-11 h-11 rounded-full flex items-center justify-center text-[20px] shrink-0 bg-[var(--color-accent-soft)]">
+            <div className="w-11 h-11 rounded-full flex items-center justify-center text-[var(--fs-lg)] shrink-0 bg-[var(--color-accent-soft)]">
               {n.icon}
             </div>
             <div>
-              <div className="font-semibold text-[16px]">{n.title}</div>
-              <div className="text-[14px] text-[var(--color-text-secondary)]">{n.description}</div>
+              <div className="font-semibold text-[var(--fs-md)]">{n.title}</div>
+              <div className="text-[var(--fs-sm)] text-[var(--color-text-secondary)]">{n.description}</div>
             </div>
           </div>
         ))}
       </div>
-      <p className="text-[15px] text-[var(--color-text-secondary)] mb-6">
-        Gracias de corazón por usar la app y confiar en ella para tus finanzas. ¡Espero que te sea de mucha ayuda! 💜
+      <p className="text-[var(--fs-base)] text-[var(--color-text-secondary)] mb-6">
+        Gracias de corazón por usar la app y confiar en ella para tus finanzas. Cualquier cosa rara que veas, me
+        avisas. ¡Espero que te sirva! 💜
       </p>
       <Button
         className="w-full"

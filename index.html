@@ -6,6 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mis Finanzas — Finanzas personales para la familia</title>
     <meta name="description" content="Administra tus ingresos y gastos junto a tu familia, cada quien con su propia cuenta privada y segura." />
+    <meta name="color-scheme" content="dark light" />
+    <script>
+      // Fija el tema antes de pintar para evitar el destello claro al cargar.
+      // Sin preferencia guardada, la app arranca en modo oscuro.
+      try {
+        var t = localStorage.getItem('finanzas-theme')
+        document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark')
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'dark')
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

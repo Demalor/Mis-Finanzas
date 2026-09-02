@@ -5,7 +5,9 @@ import {
   getDocs,
   writeBatch,
   setDoc,
-} from 'firebase/firestore'
+  type DocumentData,
+  type DocumentReference,
+} from 'firebase/firestore/lite'
 import { db } from './config'
 import type {
   Movement,
@@ -13,7 +15,6 @@ import type {
   Budget,
   RecurringMovement,
   BackupData,
-  UserProfile,
   Account,
   IncomeSource,
   Transfer,
@@ -27,6 +28,27 @@ function uid(prefix: string) {
 
 function col(userId: string, name: string) {
   return collection(db, 'usuarios', userId, name)
+}
+
+// Firestore rechaza los lotes de más de 500 operaciones. Troceamos por debajo
+// de ese límite para que importar / borrar / generar en masa nunca falle.
+const BATCH_LIMIT = 450
+
+type WriteOp =
+  | { op: 'set'; ref: DocumentReference; data: object }
+  | { op: 'update'; ref: DocumentReference; data: object }
+  | { op: 'delete'; ref: DocumentReference }
+
+async function commitInBatches(ops: WriteOp[]) {
+  for (let i = 0; i < ops.length; i += BATCH_LIMIT) {
+    const batch = writeBatch(db)
+    for (const o of ops.slice(i, i + BATCH_LIMIT)) {
+      if (o.op === 'set') batch.set(o.ref, o.data as DocumentData)
+      else if (o.op === 'update') batch.update(o.ref, o.data as DocumentData)
+      else batch.delete(o.ref)
+    }
+    await batch.commit()
+  }
 }
 
 // Crea las categorías por defecto la primera vez que un usuario entra
@@ -77,6 +99,16 @@ export async function addMovement(userId: string, input: Omit<Movement, 'id' | '
   return movement
 }
 
+// Alta en masa (usado al generar movimientos recurrentes pendientes)
+export async function addMovements(userId: string, inputs: Omit<Movement, 'id' | 'createdAt' | 'updatedAt'>[]) {
+  const now = Date.now()
+  const movements: Movement[] = inputs.map((input) => ({ ...input, id: uid('mov'), createdAt: now, updatedAt: now }))
+  await commitInBatches(
+    movements.map((m) => ({ op: 'set', ref: doc(col(userId, 'movimientos'), m.id), data: m }))
+  )
+  return movements
+}
+
 export async function updateMovement(userId: string, id: string, changes: Partial<Movement>) {
   await setDoc(doc(col(userId, 'movimientos'), id), { ...changes, updatedAt: Date.now() }, { merge: true })
 }
@@ -86,9 +118,7 @@ export async function deleteMovement(userId: string, id: string) {
 }
 
 export async function deleteMovements(userId: string, ids: string[]) {
-  const batch = writeBatch(db)
-  for (const id of ids) batch.delete(doc(col(userId, 'movimientos'), id))
-  await batch.commit()
+  await commitInBatches(ids.map((id) => ({ op: 'delete', ref: doc(col(userId, 'movimientos'), id) })))
 }
 
 // ---------- Categorías ----------
@@ -232,7 +262,7 @@ export async function deleteLoan(userId: string, id: string) {
 
 // ---------- Respaldo ----------
 
-export async function exportBackup(userId: string, _profile: UserProfile): Promise<BackupData> {
+export async function exportBackup(userId: string): Promise<BackupData> {
   const [movements, categories, budgets, recurring, accounts, incomeSources, transfers, loans] = await Promise.all([
     getAllMovements(userId),
     getAllCategories(userId),
@@ -244,7 +274,7 @@ export async function exportBackup(userId: string, _profile: UserProfile): Promi
     getAllLoans(userId),
   ])
   return {
-    version: 2,
+    version: 3,
     exportedAt: new Date().toISOString(),
     movements,
     categories,
@@ -254,7 +284,6 @@ export async function exportBackup(userId: string, _profile: UserProfile): Promi
     incomeSources,
     transfers,
     loans,
-    settings: { id: 'settings', currency: 'COP', onboardingDone: true },
   }
 }
 
@@ -264,33 +293,37 @@ export function validateBackup(data: unknown): data is BackupData {
   return Array.isArray(d.movements) && Array.isArray(d.categories) && Array.isArray(d.budgets) && Array.isArray(d.recurring)
 }
 
+const ALL_COLLECTIONS = [
+  'movimientos',
+  'categorias',
+  'presupuestos',
+  'recurrentes',
+  'cuentas',
+  'fuentesIngreso',
+  'transferencias',
+  'prestamos',
+] as const
+
 export async function restoreBackup(userId: string, data: BackupData) {
-  const batch = writeBatch(db)
-  for (const m of data.movements) batch.set(doc(col(userId, 'movimientos'), m.id), m)
-  for (const c of data.categories) batch.set(doc(col(userId, 'categorias'), c.id), c)
-  for (const b of data.budgets) batch.set(doc(col(userId, 'presupuestos'), b.id), b)
-  for (const r of data.recurring) batch.set(doc(col(userId, 'recurrentes'), r.id), r)
-  for (const a of data.accounts ?? []) batch.set(doc(col(userId, 'cuentas'), a.id), a)
-  for (const s of data.incomeSources ?? []) batch.set(doc(col(userId, 'fuentesIngreso'), s.id), s)
-  for (const t of data.transfers ?? []) batch.set(doc(col(userId, 'transferencias'), t.id), t)
-  for (const l of data.loans ?? []) batch.set(doc(col(userId, 'prestamos'), l.id), l)
-  await batch.commit()
+  const ops: WriteOp[] = []
+  const push = (name: string, id: string, docData: object) =>
+    ops.push({ op: 'set', ref: doc(col(userId, name), id), data: docData })
+
+  for (const m of data.movements) push('movimientos', m.id, m)
+  for (const c of data.categories) push('categorias', c.id, c)
+  for (const b of data.budgets) push('presupuestos', b.id, b)
+  for (const r of data.recurring) push('recurrentes', r.id, r)
+  for (const a of data.accounts ?? []) push('cuentas', a.id, a)
+  for (const s of data.incomeSources ?? []) push('fuentesIngreso', s.id, s)
+  for (const t of data.transfers ?? []) push('transferencias', t.id, t)
+  for (const l of data.loans ?? []) push('prestamos', l.id, l)
+
+  await commitInBatches(ops)
 }
 
 export async function wipeAllData(userId: string) {
-  for (const name of [
-    'movimientos',
-    'categorias',
-    'presupuestos',
-    'recurrentes',
-    'cuentas',
-    'fuentesIngreso',
-    'transferencias',
-    'prestamos',
-  ]) {
+  for (const name of ALL_COLLECTIONS) {
     const snap = await getDocs(col(userId, name))
-    const batch = writeBatch(db)
-    snap.docs.forEach((d) => batch.delete(d.ref))
-    await batch.commit()
+    await commitInBatches(snap.docs.map((d) => ({ op: 'delete', ref: d.ref })))
   }
 }

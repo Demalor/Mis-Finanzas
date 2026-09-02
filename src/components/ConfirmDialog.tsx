@@ -22,7 +22,7 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   return (
     <Modal open={open} onClose={onCancel} title={title} maxWidth="420px">
-      <p className="text-[16px] text-[var(--color-text-secondary)] mb-6">{message}</p>
+      <p className="text-[var(--fs-md)] text-[var(--color-text-secondary)] mb-6">{message}</p>
       <div className="flex gap-3">
         <Button variant="secondary" onClick={onCancel} className="flex-1">
           Cancelar

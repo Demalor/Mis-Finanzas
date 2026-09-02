@@ -6,6 +6,8 @@ import { Button } from '../components/Button'
 import { MovementRow } from '../components/MovementRow'
 import { EmptyState } from '../components/EmptyState'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { PageHeader } from '../components/PageHeader'
+import { Segmented } from '../components/Segmented'
 import { TextInput, SelectInput } from '../components/FormControls'
 import { RecurringTab } from '../components/RecurringTab'
 
@@ -37,52 +39,50 @@ export function MovementsList() {
           categories.find((c) => c.id === m.categoryId)?.name.toLowerCase().includes(q)
       )
     }
-    list.sort((a, b) => (sortDir === 'desc' ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date)))
+    // Orden por fecha; a igual fecha, desempata por hora de creación
+    // (así los movimientos del mismo día quedan del más reciente al más antiguo).
+    list.sort((a, b) => {
+      const byDate = sortDir === 'desc' ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date)
+      if (byDate !== 0) return byDate
+      return sortDir === 'desc' ? b.createdAt - a.createdAt : a.createdAt - b.createdAt
+    })
     return list
   }, [movements, typeFilter, categoryFilter, search, sortDir, categories])
 
   const total = filtered.reduce((sum, m) => sum + (m.type === 'ingreso' ? m.amount : -m.amount), 0)
 
   return (
-    <div className="flex flex-col gap-5">
-      <div>
-        <h1 className="text-[28px] font-bold">Movimientos</h1>
-        <p className="text-[var(--color-text-secondary)] text-[15px]">Consulta tus movimientos y los que se repiten automáticamente</p>
-      </div>
+    <div className="page">
+      <PageHeader title="Movimientos" subtitle="Consulta tus movimientos y los que se repiten automáticamente" />
 
-      <div className="flex bg-[var(--color-muted)] rounded-[16px] p-1.5 w-fit gap-1">
-        <button
-          onClick={() => setTab('lista')}
-          className={`px-5 py-2.5 rounded-[12px] text-[15px] font-semibold ${tab === 'lista' ? 'bg-[var(--color-surface)] shadow-sm' : 'text-[var(--color-text-secondary)]'}`}
-        >
-          📋 Lista
-        </button>
-        <button
-          onClick={() => setTab('recurrentes')}
-          className={`px-5 py-2.5 rounded-[12px] text-[15px] font-semibold ${tab === 'recurrentes' ? 'bg-[var(--color-surface)] shadow-sm' : 'text-[var(--color-text-secondary)]'}`}
-        >
-          🔁 Recurrentes
-        </button>
-      </div>
+      <Segmented
+        aria-label="Vista de movimientos"
+        options={[
+          { value: 'lista', label: '📋 Lista' },
+          { value: 'recurrentes', label: '🔁 Recurrentes' },
+        ]}
+        value={tab}
+        onChange={setTab}
+      />
 
       {tab === 'recurrentes' ? (
         <RecurringTab />
       ) : (
         <>
-          <Card padding="sm" className="flex flex-col gap-3">
+          <Card padding="sm" className="flex flex-col gap-[var(--sp-3)]">
         <TextInput
           type="search"
           placeholder="Buscar por descripción o categoría…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <div className="flex flex-wrap gap-3">
-          <SelectInput value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)} className="w-auto">
+        <div className="toolbar">
+          <SelectInput value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)}>
             <option value="todos">Todos los tipos</option>
             <option value="ingreso">Solo ingresos</option>
             <option value="gasto">Solo gastos</option>
           </SelectInput>
-          <SelectInput value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="w-auto">
+          <SelectInput value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
             <option value="todas">Todas las categorías</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
@@ -92,18 +92,18 @@ export function MovementsList() {
           </SelectInput>
           <button
             onClick={() => setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'))}
-            className="px-4 py-3.5 rounded-[14px] border border-[var(--color-border)] text-[15px] font-medium bg-[var(--color-surface)]"
+            className="min-h-[var(--tap)] px-[var(--sp-4)] rounded-[var(--radius-md)] border border-[var(--color-border)] text-[var(--fs-base)] font-medium bg-[var(--color-surface)]"
           >
             Fecha {sortDir === 'desc' ? '↓ recientes primero' : '↑ antiguas primero'}
           </button>
         </div>
       </Card>
 
-      <div className="flex items-center justify-between text-[14px] text-[var(--color-text-secondary)] px-1">
+      <div className="flex items-center justify-between gap-3 text-[var(--fs-sm)] text-[var(--color-text-secondary)] px-1">
         <span>
           Mostrando {filtered.length} de {movements.length} movimientos
         </span>
-        <span className="font-semibold" style={{ color: total >= 0 ? 'var(--color-income)' : 'var(--color-expense)' }}>
+        <span className="amount font-semibold shrink-0" style={{ color: total >= 0 ? 'var(--color-income)' : 'var(--color-expense)' }}>
           Total: {formatAmount(total, 'COP')}
         </span>
       </div>
@@ -115,7 +115,7 @@ export function MovementsList() {
           <div className="flex flex-col divide-y divide-[var(--color-border)]">
             {filtered.map((m) => (
               <div key={m.id} className="flex items-center gap-1">
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <MovementRow
                     movement={m}
                     category={categories.find((c) => c.id === m.categoryId)}
@@ -126,7 +126,7 @@ export function MovementsList() {
                 <button
                   onClick={() => setToDelete(m.id)}
                   aria-label="Eliminar movimiento"
-                  className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full hover:bg-red-50 text-[18px]"
+                  className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full hover:bg-[var(--color-expense-soft)] text-[var(--fs-lg)]"
                   style={{ color: 'var(--color-expense)' }}
                 >
                   🗑️
@@ -149,7 +149,11 @@ export function MovementsList() {
         }}
       />
 
-      <Button onClick={() => navigate('/agregar')} size="lg" className="fixed bottom-24 md:bottom-8 right-6 shadow-xl z-30">
+      <Button
+        onClick={() => navigate('/agregar')}
+        size="lg"
+        className="fixed bottom-24 right-[var(--sp-5)] md:bottom-[var(--sp-6)] shadow-xl z-30"
+      >
         + Agregar
       </Button>
         </>

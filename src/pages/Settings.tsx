@@ -7,7 +7,7 @@ import { useData } from '../context/DataContext'
 import { useAuth } from '../firebase/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { exportBackup, restoreBackup, validateBackup, wipeAllData } from '../firebase/repo'
-import { formatDateReadable } from '../utils/date'
+import { formatDateReadable, todayISO } from '../utils/date'
 
 export function Settings() {
   const { movements, categories, refresh } = useData()
@@ -20,8 +20,8 @@ export function Settings() {
   const [confirmImport, setConfirmImport] = useState<File | null>(null)
 
   async function handleExportJSON() {
-    if (!user || !profile) return
-    const backup = await exportBackup(user.uid, profile)
+    if (!user) return
+    const backup = await exportBackup(user.uid)
     downloadFile(JSON.stringify(backup, null, 2), `respaldo-finanzas-${todayForFile()}.json`, 'application/json')
     setMessage({ text: 'Copia de seguridad exportada correctamente.' })
   }
@@ -62,17 +62,17 @@ export function Settings() {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-2xl">
+    <div className="page max-w-2xl">
       <div>
-        <h1 className="text-[28px] font-bold">Configuración</h1>
-        <p className="text-[var(--color-text-secondary)] text-[15px]">Tu cuenta, datos y respaldo</p>
+        <h1 className="t-h1">Configuración</h1>
+        <p className="text-[var(--color-text-secondary)] text-[var(--fs-sm)] mt-1">Tu cuenta, datos y respaldo</p>
       </div>
 
       {profile && (
-        <Card padding="lg" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <Card padding="lg" className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
-            <div className="font-semibold text-[17px]">{profile.nombre}</div>
-            <div className="text-[14px] text-[var(--color-text-secondary)]">{profile.correo}</div>
+            <div className="font-semibold text-[var(--fs-md)]">{profile.nombre}</div>
+            <div className="text-[var(--fs-sm)] text-[var(--color-text-secondary)]">{profile.correo}</div>
           </div>
           <Button variant="secondary" onClick={handleSignOut}>
             Cerrar sesión
@@ -80,10 +80,10 @@ export function Settings() {
         </Card>
       )}
 
-      <Card padding="lg" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <Card padding="lg" className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-          <div className="font-semibold text-[17px]">Apariencia</div>
-          <div className="text-[14px] text-[var(--color-text-secondary)]">{theme === 'dark' ? 'Modo oscuro activado' : 'Modo claro activado'}</div>
+          <div className="font-semibold text-[var(--fs-md)]">Apariencia</div>
+          <div className="text-[var(--fs-sm)] text-[var(--color-text-secondary)]">{theme === 'dark' ? 'Modo oscuro activado' : 'Modo claro activado'}</div>
         </div>
         <Button variant="secondary" onClick={toggleTheme}>
           {theme === 'dark' ? '☀️ Modo claro' : '🌙 Modo oscuro'}
@@ -91,8 +91,8 @@ export function Settings() {
       </Card>
 
       <Card padding="lg">
-        <h2 className="text-[18px] font-bold mb-1">Cuentas, préstamos y organización</h2>
-        <p className="text-[15px] text-[var(--color-text-secondary)] mb-4">
+        <h2 className="t-h3 mb-1">Cuentas, préstamos y organización</h2>
+        <p className="text-[var(--fs-base)] text-[var(--color-text-secondary)] mb-4">
           Cuentas en distintas monedas, préstamos, categorías, fuentes de ingreso y presupuestos.
         </p>
         <div className="flex flex-col gap-2">
@@ -109,14 +109,14 @@ export function Settings() {
       </Card>
 
       <Card padding="lg">
-        <h2 className="text-[18px] font-bold mb-1">Datos y respaldo</h2>
-        <p className="text-[15px] text-[var(--color-text-secondary)] mb-5">
+        <h2 className="t-h3 mb-1">Datos y respaldo</h2>
+        <p className="text-[var(--fs-base)] text-[var(--color-text-secondary)] mb-5">
           Tu información se guarda de forma privada en la nube, asociada solo a tu cuenta. Crea copias de seguridad periódicamente.
         </p>
 
         {message && (
           <div
-            className="mb-4 px-4 py-3 rounded-[14px] text-[15px] font-medium"
+            className="mb-4 px-4 py-3 rounded-[var(--radius-md)] text-[var(--fs-base)] font-medium"
             style={{
               background: message.error ? 'var(--color-expense-soft)' : 'var(--color-income-soft)',
               color: message.error ? 'var(--color-expense)' : 'var(--color-income)',
@@ -151,10 +151,10 @@ export function Settings() {
       </Card>
 
       <Card padding="lg">
-        <h2 className="text-[18px] font-bold mb-1" style={{ color: 'var(--color-expense)' }}>
+        <h2 className="t-h3 mb-1" style={{ color: 'var(--color-expense)' }}>
           Zona de peligro
         </h2>
-        <p className="text-[15px] text-[var(--color-text-secondary)] mb-4">
+        <p className="text-[var(--fs-base)] text-[var(--color-text-secondary)] mb-4">
           Esto eliminará permanentemente todos tus movimientos, categorías personalizadas, presupuestos y recurrencias.
         </p>
         <Button variant="danger" onClick={() => setConfirmWipe(true)}>
@@ -162,8 +162,8 @@ export function Settings() {
         </Button>
       </Card>
 
-      <p className="text-[13px] text-[var(--color-text-secondary)] text-center">
-        {movements.length} movimientos guardados · {formatDateReadable(new Date().toISOString().slice(0, 10))}
+      <p className="text-[var(--fs-xs)] text-[var(--color-text-secondary)] text-center">
+        {movements.length} movimientos guardados · {formatDateReadable(todayISO())}
       </p>
 
       <ConfirmDialog
@@ -211,5 +211,5 @@ function downloadFile(content: string, filename: string, mime: string) {
 }
 
 function todayForFile() {
-  return new Date().toISOString().slice(0, 10)
+  return todayISO()
 }

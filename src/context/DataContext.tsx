@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type Dispatch, type SetStateAction, type ReactNode } from 'react'
 import type { Movement, Category, Budget, RecurringMovement, Account, IncomeSource, Transfer, Loan } from '../types/models'
 import { ensureSeeded } from '../firebase/repo'
 import * as repo from '../firebase/repo'
@@ -52,6 +52,28 @@ interface DataContextValue {
 
 const DataContext = createContext<DataContextValue | null>(null)
 
+// ---- Helpers de estado local: tras cada mutación actualizamos el array en
+// memoria en vez de re-descargar las 8 colecciones de Firestore. ----
+type Id = { id: string }
+const addOne = <T extends Id>(set: Dispatch<SetStateAction<T[]>>, item: T) =>
+  set((prev) => [...prev, item])
+const addMany = <T extends Id>(set: Dispatch<SetStateAction<T[]>>, items: T[]) =>
+  set((prev) => [...prev, ...items])
+const upsertOne = <T extends Id>(set: Dispatch<SetStateAction<T[]>>, item: T) =>
+  set((prev) => (prev.some((x) => x.id === item.id) ? prev.map((x) => (x.id === item.id ? item : x)) : [...prev, item]))
+// Ignora las claves `undefined` para reflejar el `ignoreUndefinedProperties`
+// de Firestore (un `undefined` en el merge deja el valor anterior intacto).
+const patchOne = <T extends Id>(set: Dispatch<SetStateAction<T[]>>, id: string, changes: Partial<T>) => {
+  const clean = Object.fromEntries(Object.entries(changes).filter(([, v]) => v !== undefined)) as Partial<T>
+  set((prev) => prev.map((x) => (x.id === id ? { ...x, ...clean } : x)))
+}
+const removeOne = <T extends Id>(set: Dispatch<SetStateAction<T[]>>, id: string) =>
+  set((prev) => prev.filter((x) => x.id !== id))
+const removeMany = <T extends Id>(set: Dispatch<SetStateAction<T[]>>, ids: string[]) => {
+  const gone = new Set(ids)
+  set((prev) => prev.filter((x) => !gone.has(x.id)))
+}
+
 export function DataProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const userId = user?.uid ?? null
@@ -88,25 +110,37 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setLoans(ln)
   }, [userId])
 
-  const generateDueRecurring = useCallback(async () => {
-    if (!userId) return
+  // Genera los movimientos pendientes de cada recurrencia y devuelve lo creado
+  // para poder mezclarlo en el estado local sin recargar todo.
+  const generateDueRecurring = useCallback(async (): Promise<{ created: Movement[]; touched: Map<string, string> }> => {
+    const touched = new Map<string, string>()
+    if (!userId) return { created: [], touched }
     const recs = await repo.getAllRecurring(userId)
     const today = todayISO()
+    const toCreate: Omit<Movement, 'id' | 'createdAt' | 'updatedAt'>[] = []
     for (const r of recs) {
       const pending = pendingDatesFor(r, today)
       if (pending.length === 0) continue
       for (const date of pending) {
-        await repo.addMovement(userId, {
+        toCreate.push({
           type: r.type,
           amount: r.amount,
           categoryId: r.categoryId,
           date,
           description: r.description,
           recurringId: r.id,
+          accountId: r.accountId,
+          sourceId: r.type === 'ingreso' ? r.sourceId : undefined,
         })
       }
-      await repo.updateRecurring(userId, r.id, { lastGeneratedDate: pending[pending.length - 1] })
+      touched.set(r.id, pending[pending.length - 1])
     }
+    if (toCreate.length === 0) return { created: [], touched }
+    const created = await repo.addMovements(userId, toCreate)
+    await Promise.all(
+      [...touched].map(([id, lastGeneratedDate]) => repo.updateRecurring(userId, id, { lastGeneratedDate }))
+    )
+    return { created, touched }
   }, [userId])
 
   useEffect(() => {
@@ -146,126 +180,122 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       addMovement: async (input) => {
         if (!userId) return
-        await repo.addMovement(userId, input)
-        await loadAll()
+        addOne(setMovements, await repo.addMovement(userId, input))
       },
       updateMovement: async (id, changes) => {
         if (!userId) return
         await repo.updateMovement(userId, id, changes)
-        await loadAll()
+        patchOne(setMovements, id, { ...changes, updatedAt: Date.now() })
       },
       deleteMovement: async (id) => {
         if (!userId) return
         await repo.deleteMovement(userId, id)
-        await loadAll()
+        removeOne(setMovements, id)
       },
       deleteMovements: async (ids) => {
         if (!userId) return
         await repo.deleteMovements(userId, ids)
-        await loadAll()
+        removeMany(setMovements, ids)
       },
 
       addCategory: async (input) => {
         if (!userId) return
-        await repo.addCategory(userId, input)
-        await loadAll()
+        addOne(setCategories, await repo.addCategory(userId, input))
       },
       updateCategory: async (id, changes) => {
         if (!userId) return
         await repo.updateCategory(userId, id, changes)
-        await loadAll()
+        patchOne(setCategories, id, changes)
       },
       deleteCategory: async (id) => {
         if (!userId) return
         await repo.deleteCategory(userId, id)
-        await loadAll()
+        removeOne(setCategories, id)
       },
 
       upsertBudget: async (input) => {
         if (!userId) return
-        await repo.upsertBudget(userId, input)
-        await loadAll()
+        upsertOne(setBudgets, await repo.upsertBudget(userId, input))
       },
       deleteBudget: async (id) => {
         if (!userId) return
         await repo.deleteBudget(userId, id)
-        await loadAll()
+        removeOne(setBudgets, id)
       },
 
       addRecurring: async (input) => {
         if (!userId) return
-        await repo.addRecurring(userId, input)
-        await generateDueRecurring()
-        await loadAll()
+        const rec = await repo.addRecurring(userId, input)
+        const { created, touched } = await generateDueRecurring()
+        setRecurring((prev) =>
+          [...prev, rec].map((r) => (touched.has(r.id) ? { ...r, lastGeneratedDate: touched.get(r.id) } : r))
+        )
+        if (created.length > 0) addMany(setMovements, created)
       },
       updateRecurring: async (id, changes) => {
         if (!userId) return
         await repo.updateRecurring(userId, id, changes)
-        await loadAll()
+        patchOne(setRecurring, id, changes)
       },
       deleteRecurring: async (id) => {
         if (!userId) return
         await repo.deleteRecurring(userId, id)
-        await loadAll()
+        removeOne(setRecurring, id)
       },
 
       addAccount: async (input) => {
         if (!userId) return
-        await repo.addAccount(userId, input)
-        await loadAll()
+        addOne(setAccounts, await repo.addAccount(userId, input))
       },
       updateAccount: async (id, changes) => {
         if (!userId) return
         await repo.updateAccount(userId, id, changes)
-        await loadAll()
+        patchOne(setAccounts, id, changes)
       },
       deleteAccount: async (id) => {
         if (!userId) return
         await repo.deleteAccount(userId, id)
-        await loadAll()
+        removeOne(setAccounts, id)
       },
 
       addIncomeSource: async (input) => {
         if (!userId) return
-        await repo.addIncomeSource(userId, input)
-        await loadAll()
+        addOne(setIncomeSources, await repo.addIncomeSource(userId, input))
       },
       updateIncomeSource: async (id, changes) => {
         if (!userId) return
         await repo.updateIncomeSource(userId, id, changes)
-        await loadAll()
+        patchOne(setIncomeSources, id, changes)
       },
       deleteIncomeSource: async (id) => {
         if (!userId) return
         await repo.deleteIncomeSource(userId, id)
-        await loadAll()
+        removeOne(setIncomeSources, id)
       },
 
       addTransfer: async (input) => {
         if (!userId) return
-        await repo.addTransfer(userId, input)
-        await loadAll()
+        addOne(setTransfers, await repo.addTransfer(userId, input))
       },
       deleteTransfer: async (id) => {
         if (!userId) return
         await repo.deleteTransfer(userId, id)
-        await loadAll()
+        removeOne(setTransfers, id)
       },
 
       addLoan: async (input) => {
         if (!userId) return
-        await repo.addLoan(userId, input)
-        await loadAll()
+        addOne(setLoans, await repo.addLoan(userId, input))
       },
       updateLoan: async (id, changes) => {
         if (!userId) return
         await repo.updateLoan(userId, id, changes)
-        await loadAll()
+        patchOne(setLoans, id, changes)
       },
       deleteLoan: async (id) => {
         if (!userId) return
         await repo.deleteLoan(userId, id)
-        await loadAll()
+        removeOne(setLoans, id)
       },
     }),
     [loading, movements, categories, budgets, recurring, accounts, incomeSources, transfers, loans, loadAll, generateDueRecurring, userId]

@@ -10,9 +10,23 @@ export function toMonthKey(isoDate: string): string {
   return isoDate.slice(0, 7)
 }
 
+// "YYYY-MM-DD" en hora LOCAL (toISOString() da UTC y cerca de medianoche
+// en Colombia, UTC-5, devolvería el día equivocado).
+export function toISODate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export function todayISO(): string {
-  const d = new Date()
-  return d.toISOString().slice(0, 10)
+  return toISODate(new Date())
+}
+
+// Próxima ocurrencia (hoy o futura) del día `dayOfMonth` del mes, en ISO local.
+export function nextMonthlyDate(dayOfMonth: number, from: Date = new Date()): string {
+  let d = new Date(from.getFullYear(), from.getMonth(), dayOfMonth)
+  if (d < new Date(from.getFullYear(), from.getMonth(), from.getDate())) {
+    d = new Date(from.getFullYear(), from.getMonth() + 1, dayOfMonth)
+  }
+  return toISODate(d)
 }
 
 export function currentMonthKey(): string {

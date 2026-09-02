@@ -1,7 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  /* Paleta */
+  color-scheme: light;
+  /* ---------- Paleta ---------- */
   --color-bg: #F9F9FB;
   --color-surface: #FFFFFF;
   --color-border: #E5E5EA;
@@ -13,12 +14,47 @@
   --color-income-soft: #E6F7ED;
   --color-expense: #D6432B;
   --color-expense-soft: #FDEDEA;
+  --color-warn: #B25E00;
+  --color-warn-soft: #FFF4E5;
   --color-muted: #F0F0F2;
-  --shadow-card: 0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04);
-  --radius-card: 20px;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 2px 10px rgba(0, 0, 0, 0.04);
+
+  /* ---------- Tipografía fluida (clamp, anclada en rem) ----------
+     Escala Utopia: 360px (ratio 1.2) → 1280px (ratio 1.25).
+     Cada paso crece de forma continua, sin saltos en breakpoints,
+     y respeta el zoom / tamaño de fuente del navegador (WCAG 1.4.4). */
+  --fs-2xs: clamp(0.6875rem, 0.663rem + 0.109vw, 0.75rem);   /* 11 → 12 */
+  --fs-xs:  clamp(0.75rem, 0.726rem + 0.109vw, 0.8125rem);   /* 12 → 13 */
+  --fs-sm:  clamp(0.8125rem, 0.788rem + 0.109vw, 0.875rem);  /* 13 → 14 */
+  --fs-base: clamp(0.9375rem, 0.913rem + 0.109vw, 1rem);     /* 15 → 16 */
+  --fs-md:  clamp(0.9375rem, 0.889rem + 0.217vw, 1.0625rem); /* 15 → 17 */
+  --fs-lg:  clamp(1.0625rem, 1.014rem + 0.217vw, 1.1875rem); /* 17 → 19 */
+  --fs-xl:  clamp(1.125rem, 1.027rem + 0.435vw, 1.375rem);   /* 18 → 22 */
+  --fs-2xl: clamp(1.4375rem, 1.266rem + 0.761vw, 1.875rem);  /* 23 → 30 */
+  --fs-3xl: clamp(1.625rem, 1.38rem + 1.087vw, 2.25rem);     /* 26 → 36 */
+
+  /* ---------- Espaciado fluido (base 8-pt) ---------- */
+  --sp-1: 0.25rem;  /* 4 */
+  --sp-2: 0.5rem;   /* 8 */
+  --sp-3: 0.75rem;  /* 12 */
+  --sp-4: clamp(0.75rem, 0.652rem + 0.435vw, 1rem);   /* 12 → 16 */
+  --sp-5: clamp(1rem, 0.902rem + 0.435vw, 1.25rem);   /* 16 → 20 */
+  --sp-6: clamp(1.25rem, 1.054rem + 0.87vw, 1.75rem); /* 20 → 28 */
+  --sp-7: clamp(1.75rem, 1.457rem + 1.304vw, 2.5rem); /* 28 → 40 */
+  --sp-8: clamp(2rem, 1.413rem + 2.609vw, 3.5rem);    /* 32 → 56 */
+
+  /* ---------- Otros ---------- */
+  --tap: 2.75rem;          /* 44px — área táctil mínima (WCAG 2.5.5 / Apple HIG) */
+  --container: 64rem;      /* ancho máximo del contenido */
+  --radius-sm: 0.625rem;   /* 10 */
+  --radius-md: 0.875rem;   /* 14 */
+  --radius-lg: 1.25rem;    /* 20 */
+  --radius-xl: 1.75rem;    /* 28 */
+  --radius-card: var(--radius-lg);
 }
 
 [data-theme='dark'] {
+  color-scheme: dark;
   --color-bg: #0F0F12;
   --color-surface: #1C1C1F;
   --color-border: #2E2E32;
@@ -30,12 +66,19 @@
   --color-income-soft: #16321F;
   --color-expense: #FF6B5B;
   --color-expense-soft: #3A1E1A;
+  --color-warn: #F0A64E;
+  --color-warn-soft: #3A2A12;
   --color-muted: #26262A;
-  --shadow-card: 0 1px 2px rgba(0,0,0,0.3), 0 4px 16px rgba(0,0,0,0.35);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 10px rgba(0, 0, 0, 0.32);
 }
 
 * {
   box-sizing: border-box;
+}
+
+html {
+  /* Sin px fijo: la raíz respeta la preferencia del navegador */
+  font-size: 100%;
 }
 
 html, body, #root {
@@ -48,12 +91,19 @@ body {
   color: var(--color-text);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
-  font-size: 17px;
+  font-size: var(--fs-base);
   line-height: 1.5;
 }
 
 button {
   font-family: inherit;
+}
+
+/* Recursos gráficos flexibles: nunca desbordan su contenedor */
+img,
+video {
+  max-width: 100%;
+  height: auto;
 }
 
 ::selection {
@@ -66,11 +116,79 @@ button {
   border-radius: 8px;
 }
 
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
   }
+}
+
+/* ---------- Tipografía semántica ---------- */
+.t-h1 {
+  font-size: var(--fs-2xl);
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+.t-h2 {
+  font-size: var(--fs-xl);
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.t-h3 {
+  font-size: var(--fs-lg);
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+/* Importes: dígitos de ancho fijo para que las columnas de dinero alineen */
+.amount {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* ---------- Primitivas de layout ---------- */
+
+/* Ritmo vertical estándar de cada página */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+}
+
+/* Grilla intrínseca: las tarjetas deciden solas cuántas columnas caben.
+   Sin breakpoints, sin zonas muertas. */
+.card-grid {
+  display: grid;
+  gap: var(--sp-5);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+}
+.card-grid-wide {
+  display: grid;
+  gap: var(--sp-5);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+}
+
+/* Fila de controles/filtros que se reparte el ancho disponible */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+}
+.toolbar > * {
+  flex: 1 1 12rem;
 }
 
 .card {
@@ -87,4 +205,13 @@ button {
 .scrollbar-thin::-webkit-scrollbar-thumb {
   background: var(--color-border);
   border-radius: 8px;
+}
+
+/* Oculta la barra de scroll (tiras de pestañas que se deslizan en móvil) */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

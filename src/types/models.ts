@@ -54,15 +54,15 @@ export interface Movement {
   sourceId?: string // fuente del ingreso (solo aplica si type === 'ingreso')
 }
 
-export type TransferType = 'cambio_moneda' | 'pago_tarjeta' | 'pago_prestamo'
+// Por ahora solo se registran cambios de moneda entre cuentas propias.
+export type TransferType = 'cambio_moneda'
 
 export interface Transfer {
   id: string
   tipo: TransferType
   date: string
   fromAccountId: string
-  toAccountId?: string // no aplica si el destino es un préstamo externo
-  loanId?: string // si tipo === 'pago_prestamo'
+  toAccountId?: string
   fromAmount: number
   toAmount: number
   rate: number // toAmount / fromAmount
@@ -109,6 +109,8 @@ export interface RecurringMovement {
   startDate: string // ISO
   lastGeneratedDate?: string // ISO, última fecha para la que ya se generó un movimiento
   active: boolean
+  accountId?: string // cuenta a la que se cargan los movimientos generados
+  sourceId?: string // fuente del ingreso (solo si type === 'ingreso')
 }
 
 export interface Budget {
@@ -116,12 +118,6 @@ export interface Budget {
   categoryId: string
   month: string // formato "YYYY-MM"
   amount: number
-}
-
-export interface AppSettings {
-  id: 'settings'
-  currency: 'COP'
-  onboardingDone: boolean
 }
 
 // ---------- Multiusuario (Firebase) ----------
@@ -156,7 +152,6 @@ export interface BackupData {
   categories: Category[]
   budgets: Budget[]
   recurring: RecurringMovement[]
-  settings: AppSettings
   accounts?: Account[]
   incomeSources?: IncomeSource[]
   transfers?: Transfer[]

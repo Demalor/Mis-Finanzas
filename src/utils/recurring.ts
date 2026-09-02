@@ -1,5 +1,5 @@
 import type { RecurringMovement, RecurringFrequency } from '../types/models'
-import { todayISO } from './date'
+import { todayISO, toISODate } from './date'
 
 function nextDate(isoDate: string, frequency: RecurringFrequency): string {
   const d = new Date(isoDate + 'T00:00:00')
@@ -17,7 +17,7 @@ function nextDate(isoDate: string, frequency: RecurringFrequency): string {
       d.setFullYear(d.getFullYear() + 1)
       break
   }
-  return d.toISOString().slice(0, 10)
+  return toISODate(d)
 }
 
 // Calcula qué fechas de movimientos deben generarse para una recurrencia,

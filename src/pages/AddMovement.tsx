@@ -58,10 +58,10 @@ export function AddMovement() {
   }
 
   return (
-    <div className="max-w-lg mx-auto flex flex-col gap-6">
+    <div className="page max-w-lg mx-auto">
       <div>
-        <h1 className="text-[28px] font-bold">{editing ? 'Editar movimiento' : 'Agregar movimiento'}</h1>
-        <p className="text-[var(--color-text-secondary)] text-[15px]">
+        <h1 className="t-h1">{editing ? 'Editar movimiento' : 'Agregar movimiento'}</h1>
+        <p className="text-[var(--color-text-secondary)] text-[var(--fs-sm)] mt-1">
           {type === 'gasto' ? 'Registra un gasto nuevo' : 'Registra un ingreso nuevo'}
         </p>
       </div>
@@ -97,7 +97,7 @@ export function AddMovement() {
               </SelectInput>
             </Field>
           ) : (
-            <p className="text-[14px] text-[var(--color-text-secondary)] mb-5">
+            <p className="text-[var(--fs-sm)] text-[var(--color-text-secondary)] mb-5">
               No tienes cuentas creadas.{' '}
               <Link to="/cuentas" className="font-semibold" style={{ color: 'var(--color-accent)' }}>
                 Crea una aquí
@@ -133,7 +133,7 @@ export function AddMovement() {
           </Field>
 
           {error && (
-            <p className="text-[15px] mb-4 font-medium" style={{ color: 'var(--color-expense)' }}>
+            <p className="text-[var(--fs-base)] mb-4 font-medium" style={{ color: 'var(--color-expense)' }}>
               {error}
             </p>
           )}

@@ -6,9 +6,9 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const paddings: Record<string, string> = {
-  sm: 'p-4',
-  md: 'p-6',
-  lg: 'p-8',
+  sm: 'p-[var(--sp-4)]',
+  md: 'p-[var(--sp-5)]',
+  lg: 'p-[var(--sp-6)]',
 }
 
 export function Card({ children, padding = 'md', className = '', ...props }: CardProps) {

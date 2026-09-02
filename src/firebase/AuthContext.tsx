@@ -12,7 +12,7 @@ import {
   onAuthStateChanged,
   type User,
 } from 'firebase/auth'
-import { doc, getDoc, runTransaction, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
+import { doc, getDoc, runTransaction, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore/lite'
 import { auth, db } from './config'
 import type { UserProfile } from '../types/models'
 

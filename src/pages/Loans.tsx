@@ -5,6 +5,8 @@ import { Button } from '../components/Button'
 import { Modal } from '../components/Modal'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { EmptyState } from '../components/EmptyState'
+import { PageHeader } from '../components/PageHeader'
+import { Segmented } from '../components/Segmented'
 import { Field, TextInput, SelectInput } from '../components/FormControls'
 import type { Loan, LoanDirection, InterestRateType, Currency } from '../types/models'
 import { CURRENCIES } from '../types/models'
@@ -22,29 +24,22 @@ export function Loans() {
   const list = loans.filter((l) => l.direction === tab && l.active)
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-[28px] font-bold">Préstamos</h1>
-          <p className="text-[var(--color-text-secondary)] text-[15px]">Lo que debes y lo que te deben</p>
-        </div>
-        <Button onClick={() => setCreating(true)}>+ Nuevo</Button>
-      </div>
+    <div className="page">
+      <PageHeader
+        title="Préstamos"
+        subtitle="Lo que debes y lo que te deben"
+        action={<Button onClick={() => setCreating(true)} className="shrink-0">+ Nuevo</Button>}
+      />
 
-      <div className="flex bg-[var(--color-muted)] rounded-[16px] p-1.5 w-fit gap-1">
-        <button
-          onClick={() => setTab('debo')}
-          className={`px-5 py-2.5 rounded-[12px] text-[15px] font-semibold ${tab === 'debo' ? 'bg-[var(--color-surface)] shadow-sm' : 'text-[var(--color-text-secondary)]'}`}
-        >
-          Yo debo
-        </button>
-        <button
-          onClick={() => setTab('me_deben')}
-          className={`px-5 py-2.5 rounded-[12px] text-[15px] font-semibold ${tab === 'me_deben' ? 'bg-[var(--color-surface)] shadow-sm' : 'text-[var(--color-text-secondary)]'}`}
-        >
-          Me deben
-        </button>
-      </div>
+      <Segmented
+        aria-label="Dirección del préstamo"
+        options={[
+          { value: 'debo', label: 'Yo debo' },
+          { value: 'me_deben', label: 'Me deben' },
+        ]}
+        value={tab}
+        onChange={setTab}
+      />
 
       {list.length === 0 ? (
         <EmptyState
@@ -53,7 +48,7 @@ export function Loans() {
           action={<Button onClick={() => setCreating(true)}>Crear préstamo</Button>}
         />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="card-grid">
           {list.map((loan) => (
             <LoanCard key={loan.id} loan={loan} onOpen={() => setDetail(loan)} onDelete={() => setToDelete(loan)} />
           ))}
@@ -95,12 +90,12 @@ function LoanCard({ loan, onOpen, onDelete }: { loan: Loan; onOpen: () => void; 
     <Card padding="md">
       <button onClick={onOpen} className="w-full text-left">
         <div className="flex items-center justify-between gap-2 mb-2">
-          <span className="font-semibold text-[16px] truncate min-w-0">{loan.counterpartyName}</span>
-          <span className="text-[13px] text-[var(--color-text-secondary)] shrink-0">
+          <span className="font-semibold text-[var(--fs-md)] truncate min-w-0">{loan.counterpartyName}</span>
+          <span className="text-[var(--fs-xs)] text-[var(--color-text-secondary)] shrink-0">
             {summary.installmentsPaid}/{loan.installmentCount} cuotas
           </span>
         </div>
-        <div className="grid grid-cols-2 gap-2 text-[14px] mb-2">
+        <div className="grid grid-cols-2 gap-2 text-[var(--fs-sm)] mb-2">
           <div>
             <div className="text-[var(--color-text-secondary)]">{loan.direction === 'debo' ? 'Me falta pagar' : 'Me falta cobrar'}</div>
             <div className="font-semibold">{formatAmount(summary.remainingCapital, loan.currency)}</div>
@@ -111,12 +106,12 @@ function LoanCard({ loan, onOpen, onDelete }: { loan: Loan; onOpen: () => void; 
           </div>
         </div>
         {showAlert && (
-          <p className="text-[13px] font-semibold" style={{ color: dias! < 0 ? 'var(--color-expense)' : '#FF9500' }}>
+          <p className="text-[var(--fs-xs)] font-semibold" style={{ color: dias! < 0 ? 'var(--color-expense)' : 'var(--color-warn)' }}>
             {dias! < 0 ? '⚠️ Cuota vencida' : `⏰ Próxima cuota en ${dias} día(s)`}
           </p>
         )}
       </button>
-      <button onClick={onDelete} className="text-[13px] font-semibold mt-2" style={{ color: 'var(--color-expense)' }}>
+      <button onClick={onDelete} className="text-[var(--fs-xs)] font-semibold mt-2" style={{ color: 'var(--color-expense)' }}>
         Eliminar
       </button>
     </Card>
@@ -129,7 +124,7 @@ function LoanDetailModal({ loan, onClose, onUpdateRate }: { loan: Loan; onClose:
 
   return (
     <Modal open onClose={onClose} title={loan.counterpartyName}>
-      <div className="grid grid-cols-2 gap-3 mb-5 text-[15px]">
+      <div className="grid grid-cols-2 gap-3 mb-5 text-[var(--fs-base)]">
         <Info label="Monto total" value={formatAmount(loan.totalAmount, loan.currency)} />
         <Info label="Cuota" value={formatAmount(summary.installmentAmount, loan.currency)} />
         <Info label="Cuotas pagadas" value={`${summary.installmentsPaid} / ${loan.installmentCount}`} />
@@ -154,7 +149,7 @@ function LoanDetailModal({ loan, onClose, onUpdateRate }: { loan: Loan; onClose:
       )}
 
       {loan.counterpartyContact && (
-        <p className="text-[14px] text-[var(--color-text-secondary)]">Contacto: {loan.counterpartyContact}</p>
+        <p className="text-[var(--fs-sm)] text-[var(--color-text-secondary)]">Contacto: {loan.counterpartyContact}</p>
       )}
     </Modal>
   )
@@ -163,7 +158,7 @@ function LoanDetailModal({ loan, onClose, onUpdateRate }: { loan: Loan; onClose:
 function Info({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-[var(--color-text-secondary)] text-[13px]">{label}</div>
+      <div className="text-[var(--color-text-secondary)] text-[var(--fs-xs)]">{label}</div>
       <div className="font-semibold">{value}</div>
     </div>
   )
@@ -195,18 +190,18 @@ function LoanFormModal({
   return (
     <Modal open={open} onClose={onClose} title="Nuevo préstamo">
       <Field label="¿Yo debo o me deben?">
-        <div className="flex bg-[var(--color-muted)] rounded-[14px] p-1.5 gap-1">
+        <div className="flex bg-[var(--color-muted)] rounded-[var(--radius-md)] p-1.5 gap-1">
           <button
             type="button"
             onClick={() => setDirection('debo')}
-            className={`flex-1 py-2.5 rounded-[10px] text-[15px] font-semibold ${direction === 'debo' ? 'bg-[var(--color-surface)] shadow-sm' : 'text-[var(--color-text-secondary)]'}`}
+            className={`flex-1 py-2.5 rounded-[var(--radius-sm)] text-[var(--fs-base)] font-semibold ${direction === 'debo' ? 'bg-[var(--color-surface)] shadow-sm' : 'text-[var(--color-text-secondary)]'}`}
           >
             Yo debo
           </button>
           <button
             type="button"
             onClick={() => setDirection('me_deben')}
-            className={`flex-1 py-2.5 rounded-[10px] text-[15px] font-semibold ${direction === 'me_deben' ? 'bg-[var(--color-surface)] shadow-sm' : 'text-[var(--color-text-secondary)]'}`}
+            className={`flex-1 py-2.5 rounded-[var(--radius-sm)] text-[var(--fs-base)] font-semibold ${direction === 'me_deben' ? 'bg-[var(--color-surface)] shadow-sm' : 'text-[var(--color-text-secondary)]'}`}
           >
             Me deben
           </button>
@@ -240,10 +235,10 @@ function LoanFormModal({
         <button
           type="button"
           onClick={() => setHasInterest((v) => !v)}
-          className="w-full flex items-center justify-between px-4 py-3 rounded-[14px] border border-[var(--color-border)]"
+          className="w-full flex items-center justify-between px-4 py-3 rounded-[var(--radius-md)] border border-[var(--color-border)]"
         >
-          <span className="text-[15px] font-medium">{hasInterest ? 'Sí, con interés' : 'No, préstamo sin interés'}</span>
-          <span className="text-[20px]">{hasInterest ? '✅' : '⬜️'}</span>
+          <span className="text-[var(--fs-base)] font-medium">{hasInterest ? 'Sí, con interés' : 'No, préstamo sin interés'}</span>
+          <span className="text-[var(--fs-lg)]">{hasInterest ? '✅' : '⬜️'}</span>
         </button>
       </Field>
 

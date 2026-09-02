@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import { Card } from '../components/Card'
 import { Button } from '../components/Button'
 import { EmptyState } from '../components/EmptyState'
+import { Loading } from '../components/Loading'
 import { createInviteCode, getAllInviteCodes, getAllUsers, setUserActive } from '../firebase/admin'
 import { useAuth } from '../firebase/AuthContext'
 import type { InviteCode, UserProfile } from '../types/models'
-import { formatDateReadable } from '../utils/date'
+import { formatDateReadable, toISODate } from '../utils/date'
 
 export function Admin() {
   const { profile } = useAuth()
@@ -46,40 +47,41 @@ export function Admin() {
     setTimeout(() => setCopiedCode(null), 1500)
   }
 
-  if (loading) return <div className="text-center py-20 text-[var(--color-text-secondary)]">Cargando…</div>
+  if (loading)
+    return <Loading />
 
   const availableCodes = codes.filter((c) => !c.used)
   const usedCodes = codes.filter((c) => c.used)
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="page">
       <div>
-        <h1 className="text-[28px] font-bold">Administración</h1>
-        <p className="text-[var(--color-text-secondary)] text-[15px]">
+        <h1 className="t-h1">Administración</h1>
+        <p className="text-[var(--color-text-secondary)] text-[var(--fs-sm)] mt-1">
           Gestiona los códigos de invitación y las cuentas de la familia. No puedes ver los movimientos ni montos de nadie.
         </p>
       </div>
 
       <Card padding="lg">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-          <h2 className="text-[18px] font-bold">Códigos de invitación</h2>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+          <h2 className="t-h3">Códigos de invitación</h2>
           <Button onClick={handleCreateCode} disabled={creating}>
             {creating ? 'Creando…' : '+ Generar código'}
           </Button>
         </div>
 
         {availableCodes.length === 0 ? (
-          <p className="text-[15px] text-[var(--color-text-secondary)] mb-2">No hay códigos disponibles. Genera uno nuevo.</p>
+          <p className="text-[var(--fs-base)] text-[var(--color-text-secondary)] mb-2">No hay códigos disponibles. Genera uno nuevo.</p>
         ) : (
           <div className="flex flex-col gap-2 mb-4">
             {availableCodes.map((c) => (
-              <div key={c.code} className="flex items-center justify-between bg-[var(--color-accent-soft)] rounded-[14px] px-4 py-3">
-                <span className="font-mono font-bold text-[18px] tracking-widest" style={{ color: 'var(--color-accent)' }}>
+              <div key={c.code} className="flex items-center justify-between bg-[var(--color-accent-soft)] rounded-[var(--radius-md)] px-4 py-3">
+                <span className="font-mono font-bold text-[var(--fs-lg)] tracking-widest" style={{ color: 'var(--color-accent)' }}>
                   {c.code}
                 </span>
                 <button
                   onClick={() => copyCode(c.code)}
-                  className="text-[14px] font-semibold px-3 py-1.5 rounded-full bg-[var(--color-surface)]"
+                  className="text-[var(--fs-sm)] font-semibold px-3 py-1.5 rounded-full bg-[var(--color-surface)]"
                   style={{ color: 'var(--color-accent)' }}
                 >
                   {copiedCode === c.code ? '✓ Copiado' : 'Copiar'}
@@ -90,7 +92,7 @@ export function Admin() {
         )}
 
         {usedCodes.length > 0 && (
-          <details className="text-[14px] text-[var(--color-text-secondary)]">
+          <details className="text-[var(--fs-sm)] text-[var(--color-text-secondary)]">
             <summary className="cursor-pointer font-medium">Ver códigos ya utilizados ({usedCodes.length})</summary>
             <div className="flex flex-col gap-1 mt-2">
               {usedCodes.map((c) => (
@@ -105,7 +107,7 @@ export function Admin() {
       </Card>
 
       <Card padding="lg">
-        <h2 className="text-[18px] font-bold mb-4">Cuentas de la familia</h2>
+        <h2 className="t-h3 mb-4">Cuentas de la familia</h2>
         {users.length === 0 ? (
           <EmptyState icon="👨‍👩‍👧" title="Aún no hay cuentas registradas" />
         ) : (
@@ -113,33 +115,33 @@ export function Admin() {
             {users.map((u) => (
               <div key={u.uid} className="flex items-center gap-3 py-3.5">
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-[16px] truncate flex items-center gap-2">
+                  <div className="font-semibold text-[var(--fs-md)] truncate flex items-center gap-2">
                     {u.nombre}
                     {u.rol === 'admin' && (
                       <span
-                        className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+                        className="text-[var(--fs-2xs)] font-bold px-2 py-0.5 rounded-full"
                         style={{ background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }}
                       >
                         ADMIN
                       </span>
                     )}
                     {!u.activo && (
-                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--color-expense-soft)', color: 'var(--color-expense)' }}>
+                      <span className="text-[var(--fs-2xs)] font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--color-expense-soft)', color: 'var(--color-expense)' }}>
                         DESACTIVADA
                       </span>
                     )}
                   </div>
-                  <div className="text-[13px] text-[var(--color-text-secondary)]">
-                    {u.correo} · desde {formatDateReadable(new Date(u.creadoEn).toISOString().slice(0, 10))}
+                  <div className="text-[var(--fs-xs)] text-[var(--color-text-secondary)]">
+                    {u.correo} · desde {formatDateReadable(toISODate(new Date(u.creadoEn)))}
                   </div>
-                  <div className="text-[13px]" style={{ color: isRecentlyOnline(u.ultimaConexion) ? 'var(--color-income)' : 'var(--color-text-secondary)' }}>
+                  <div className="text-[var(--fs-xs)]" style={{ color: isRecentlyOnline(u.ultimaConexion) ? 'var(--color-income)' : 'var(--color-text-secondary)' }}>
                     {formatLastSeen(u.ultimaConexion)}
                   </div>
                 </div>
                 {u.rol !== 'admin' && (
                   <button
                     onClick={() => handleToggleActive(u)}
-                    className="text-[14px] font-semibold px-3 py-2 rounded-full border border-[var(--color-border)] shrink-0"
+                    className="text-[var(--fs-sm)] font-semibold px-3 py-2 rounded-full border border-[var(--color-border)] shrink-0"
                   >
                     {u.activo ? 'Desactivar' : 'Activar'}
                   </button>

@@ -47,7 +47,7 @@ export function MovementsSpreadsheet() {
     list.sort((a, b) => {
       switch (sortKey) {
         case 'date':
-          return dir * a.date.localeCompare(b.date)
+          return dir * (a.date.localeCompare(b.date) || a.createdAt - b.createdAt)
         case 'type':
           return dir * a.type.localeCompare(b.type)
         case 'category':
@@ -105,8 +105,8 @@ export function MovementsSpreadsheet() {
   ]
 
   return (
-    <div className="flex flex-col gap-5">
-      <Card padding="sm" className="flex flex-col gap-3">
+    <div className="flex flex-col gap-[var(--sp-5)]">
+      <Card padding="sm" className="flex flex-col gap-[var(--sp-3)]">
         <TextInput
           type="search"
           placeholder="Buscar…"
@@ -116,14 +116,13 @@ export function MovementsSpreadsheet() {
             setPage(1)
           }}
         />
-        <div className="flex flex-wrap gap-3">
+        <div className="toolbar">
           <SelectInput
             value={typeFilter}
             onChange={(e) => {
               setTypeFilter(e.target.value)
               setPage(1)
             }}
-            className="w-auto"
           >
             <option value="todos">Todos los tipos</option>
             <option value="ingreso">Ingresos</option>
@@ -135,7 +134,6 @@ export function MovementsSpreadsheet() {
               setCategoryFilter(e.target.value)
               setPage(1)
             }}
-            className="w-auto"
           >
             <option value="todas">Todas las categorías</option>
             {categories.map((c) => (
@@ -144,12 +142,12 @@ export function MovementsSpreadsheet() {
               </option>
             ))}
           </SelectInput>
-          <TextInput type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1) }} className="w-auto" aria-label="Desde" />
-          <TextInput type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1) }} className="w-auto" aria-label="Hasta" />
+          <TextInput type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1) }} aria-label="Desde" />
+          <TextInput type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1) }} aria-label="Hasta" />
         </div>
       </Card>
 
-      <div className="flex items-center justify-between text-[14px] px-1 flex-wrap gap-2">
+      <div className="flex items-center justify-between text-[var(--fs-sm)] px-1 flex-wrap gap-2">
         <span className="text-[var(--color-text-secondary)]">
           Mostrando {filtered.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} de {filtered.length} movimientos
           {filtered.length !== movements.length && ` (filtrado de ${movements.length})`}
@@ -157,8 +155,8 @@ export function MovementsSpreadsheet() {
       </div>
 
       {selected.size > 0 && (
-        <div className="flex items-center justify-between bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[14px] px-4 py-3">
-          <span className="text-[15px] font-medium">{selected.size} seleccionados</span>
+        <div className="flex items-center justify-between bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-md)] px-4 py-3">
+          <span className="text-[var(--fs-base)] font-medium">{selected.size} seleccionados</span>
           <Button variant="danger" size="md" onClick={() => setConfirmBulkDelete(true)}>
             Eliminar seleccionados
           </Button>
@@ -169,7 +167,7 @@ export function MovementsSpreadsheet() {
         {filtered.length === 0 ? (
           <EmptyState icon="📊" title="No hay movimientos que coincidan" message="Ajusta los filtros para ver resultados." />
         ) : (
-          <table className="w-full min-w-[720px] border-collapse text-[15px]">
+          <table className="w-full min-w-[45rem] border-collapse text-[var(--fs-base)]">
             <thead>
               <tr className="border-b-2 border-[var(--color-border)]">
                 <th className="text-left py-3 px-2 w-10">
@@ -182,8 +180,14 @@ export function MovementsSpreadsheet() {
                   />
                 </th>
                 {columns.map((col) => (
-                  <th key={col.key} className="text-left py-3 px-2 font-semibold text-[var(--color-text-secondary)]">
-                    <button onClick={() => toggleSort(col.key)} className="flex items-center gap-1 hover:text-[var(--color-text)]">
+                  <th
+                    key={col.key}
+                    className={`py-3 px-2 font-semibold text-[var(--color-text-secondary)] ${col.key === 'amount' ? 'text-right' : 'text-left'}`}
+                  >
+                    <button
+                      onClick={() => toggleSort(col.key)}
+                      className={`inline-flex items-center gap-1 hover:text-[var(--color-text)] ${col.key === 'amount' ? 'flex-row-reverse' : ''}`}
+                    >
                       {col.label}
                       {sortKey === col.key && <span>{sortDir === 'asc' ? '▲' : '▼'}</span>}
                     </button>
@@ -207,7 +211,7 @@ export function MovementsSpreadsheet() {
                   <td className="py-3 px-2 whitespace-nowrap">{formatDateReadable(m.date)}</td>
                   <td className="py-3 px-2">
                     <span
-                      className="px-2.5 py-1 rounded-full text-[13px] font-semibold"
+                      className="px-2.5 py-1 rounded-full text-[var(--fs-xs)] font-semibold"
                       style={{
                         background: m.type === 'ingreso' ? 'var(--color-income-soft)' : 'var(--color-expense-soft)',
                         color: m.type === 'ingreso' ? 'var(--color-income)' : 'var(--color-expense)',
@@ -217,12 +221,12 @@ export function MovementsSpreadsheet() {
                     </span>
                   </td>
                   <td className="py-3 px-2 whitespace-nowrap">{categoryName(m.categoryId)}</td>
-                  <td className="py-3 px-2 max-w-[220px] truncate">{m.description || '—'}</td>
-                  <td className="py-3 px-2 font-semibold whitespace-nowrap">{formatAmount(m.amount, currencyFor(m))}</td>
+                  <td className="py-3 px-2 max-w-[14rem] truncate">{m.description || '—'}</td>
+                  <td className="amount py-3 px-2 font-semibold whitespace-nowrap text-right">{formatAmount(m.amount, currencyFor(m))}</td>
                   <td className="py-3 px-2">
                     <button
                       onClick={() => navigate(`/editar/${m.id}`)}
-                      className="text-[14px] font-semibold"
+                      className="min-h-[var(--tap)] text-[var(--fs-sm)] font-semibold"
                       style={{ color: 'var(--color-accent)' }}
                     >
                       Editar
@@ -240,7 +244,7 @@ export function MovementsSpreadsheet() {
           <Button variant="secondary" size="md" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
             ‹ Anterior
           </Button>
-          <span className="text-[15px] font-medium">
+          <span className="text-[var(--fs-base)] font-medium">
             Página {page} de {totalPages}
           </span>
           <Button variant="secondary" size="md" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>

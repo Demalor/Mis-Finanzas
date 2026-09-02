@@ -5,6 +5,8 @@ import { Button } from '../components/Button'
 import { Modal } from '../components/Modal'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { EmptyState } from '../components/EmptyState'
+import { PageHeader } from '../components/PageHeader'
+import { Segmented } from '../components/Segmented'
 import { Field, TextInput, TypeToggle } from '../components/FormControls'
 import { BudgetsTab } from '../components/BudgetsTab'
 import type { Category, IncomeSource, MovementType } from '../types/models'
@@ -36,69 +38,54 @@ export function Categories() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-[28px] font-bold">Organización</h1>
-          <p className="text-[var(--color-text-secondary)] text-[15px]">Categorías, fuentes de ingreso y presupuestos</p>
-        </div>
-        {tab === 'fuentes' ? (
-          <Button onClick={() => setCreatingSource(true)}>+ Nueva</Button>
-        ) : tab === 'presupuestos' ? null : (
-          <Button onClick={() => setCreating(true)}>+ Nueva</Button>
-        )}
-      </div>
+    <div className="page">
+      <PageHeader
+        title="Organización"
+        subtitle="Categorías, fuentes de ingreso y presupuestos"
+        action={
+          tab === 'fuentes' ? (
+            <Button onClick={() => setCreatingSource(true)} className="shrink-0">+ Nueva</Button>
+          ) : tab === 'presupuestos' ? undefined : (
+            <Button onClick={() => setCreating(true)} className="shrink-0">+ Nueva</Button>
+          )
+        }
+      />
 
-      <div className="flex bg-[var(--color-muted)] rounded-[16px] p-1.5 w-fit gap-1 flex-wrap">
-        <button
-          onClick={() => setTab('gasto')}
-          className={`px-5 py-2.5 rounded-[12px] text-[15px] font-semibold ${tab === 'gasto' ? 'bg-[var(--color-surface)] shadow-sm' : 'text-[var(--color-text-secondary)]'}`}
-        >
-          Gastos
-        </button>
-        <button
-          onClick={() => setTab('ingreso')}
-          className={`px-5 py-2.5 rounded-[12px] text-[15px] font-semibold ${tab === 'ingreso' ? 'bg-[var(--color-surface)] shadow-sm' : 'text-[var(--color-text-secondary)]'}`}
-        >
-          Ingresos
-        </button>
-        <button
-          onClick={() => setTab('fuentes')}
-          className={`px-5 py-2.5 rounded-[12px] text-[15px] font-semibold ${tab === 'fuentes' ? 'bg-[var(--color-surface)] shadow-sm' : 'text-[var(--color-text-secondary)]'}`}
-        >
-          Fuentes de ingreso
-        </button>
-        <button
-          onClick={() => setTab('presupuestos')}
-          className={`px-5 py-2.5 rounded-[12px] text-[15px] font-semibold ${tab === 'presupuestos' ? 'bg-[var(--color-surface)] shadow-sm' : 'text-[var(--color-text-secondary)]'}`}
-        >
-          🎯 Presupuestos
-        </button>
-      </div>
+      <Segmented
+        aria-label="Sección de organización"
+        options={[
+          { value: 'gasto', label: 'Gastos' },
+          { value: 'ingreso', label: 'Ingresos' },
+          { value: 'fuentes', label: 'Fuentes de ingreso' },
+          { value: 'presupuestos', label: '🎯 Presupuestos' },
+        ]}
+        value={tab}
+        onChange={setTab}
+      />
 
       {tab === 'presupuestos' && <BudgetsTab />}
 
       {(tab === 'gasto' || tab === 'ingreso') ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="card-grid">
           {list.map((cat) => (
-            <Card key={cat.id} padding="md" className="flex items-center gap-3">
+            <Card key={cat.id} padding="md" className="flex items-center gap-[var(--sp-3)]">
               <div
-                className="w-12 h-12 rounded-full flex items-center justify-center text-[22px] shrink-0"
+                className="w-12 h-12 rounded-full flex items-center justify-center text-[var(--fs-xl)] shrink-0"
                 style={{ background: `${cat.color}22` }}
               >
                 {cat.icon}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-semibold text-[16px] truncate">{cat.name}</div>
-                <div className="text-[13px] text-[var(--color-text-secondary)]">{usageCount(cat.id)} movimientos</div>
+                <div className="font-semibold text-[var(--fs-md)] truncate">{cat.name}</div>
+                <div className="text-[var(--fs-xs)] text-[var(--color-text-secondary)]">{usageCount(cat.id)} movimientos</div>
               </div>
-              <button onClick={() => setEditing(cat)} aria-label={`Editar ${cat.name}`} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[var(--color-muted)] text-[17px]">
+              <button onClick={() => setEditing(cat)} aria-label={`Editar ${cat.name}`} className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full hover:bg-[var(--color-muted)] text-[var(--fs-md)]">
                 ✏️
               </button>
               <button
                 onClick={() => setToDelete(cat)}
                 aria-label={`Eliminar ${cat.name}`}
-                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-red-50 text-[17px]"
+                className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full hover:bg-[var(--color-expense-soft)] text-[var(--fs-md)]"
                 style={{ color: 'var(--color-expense)' }}
               >
                 🗑️
@@ -107,19 +94,19 @@ export function Categories() {
           ))}
         </div>
       ) : tab === 'fuentes' ? (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-[var(--sp-3)]">
           {incomeSources.length === 0 ? (
             <EmptyState icon="🏷️" title="Aún no tienes fuentes de ingreso" message="Ej. Empresa X, Cliente Juan, Remesa de mamá." />
           ) : (
             incomeSources.map((src) => (
-              <Card key={src.id} padding="md" className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full flex items-center justify-center text-[18px] shrink-0 bg-[var(--color-accent-soft)]">💼</div>
+              <Card key={src.id} padding="md" className="flex items-center gap-[var(--sp-3)]">
+                <div className="w-11 h-11 rounded-full flex items-center justify-center text-[var(--fs-lg)] shrink-0 bg-[var(--color-accent-soft)]">💼</div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-[16px] truncate">{src.nombre}</div>
-                  <div className="text-[13px] text-[var(--color-text-secondary)]">{sourceUsageCount(src.id)} ingresos</div>
+                  <div className="font-semibold text-[var(--fs-md)] truncate">{src.nombre}</div>
+                  <div className="text-[var(--fs-xs)] text-[var(--color-text-secondary)]">{sourceUsageCount(src.id)} ingresos</div>
                 </div>
-                <button onClick={() => setEditingSource(src)} aria-label={`Editar ${src.nombre}`} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[var(--color-muted)] text-[17px]">✏️</button>
-                <button onClick={() => setSourceToDelete(src)} aria-label={`Eliminar ${src.nombre}`} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-red-50 text-[17px]" style={{ color: 'var(--color-expense)' }}>🗑️</button>
+                <button onClick={() => setEditingSource(src)} aria-label={`Editar ${src.nombre}`} className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full hover:bg-[var(--color-muted)] text-[var(--fs-md)]">✏️</button>
+                <button onClick={() => setSourceToDelete(src)} aria-label={`Eliminar ${src.nombre}`} className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full hover:bg-[var(--color-expense-soft)] text-[var(--fs-md)]" style={{ color: 'var(--color-expense)' }}>🗑️</button>
               </Card>
             ))
           )}
@@ -228,8 +215,8 @@ function CategoryFormModal({
                 key={i}
                 type="button"
                 onClick={() => setIcon(i)}
-                className="w-11 h-11 rounded-[12px] flex items-center justify-center text-[20px] border-2"
-                style={{ borderColor: icon === i ? 'var(--color-accent)' : 'transparent', background: '#F5F5F7' }}
+                className="w-11 h-11 rounded-[var(--radius-md)] flex items-center justify-center text-[var(--fs-lg)] border-2 bg-[var(--color-muted)]"
+                style={{ borderColor: icon === i ? 'var(--color-accent)' : 'transparent' }}
               >
                 {i}
               </button>
@@ -244,8 +231,8 @@ function CategoryFormModal({
                 type="button"
                 aria-label={`Color ${c}`}
                 onClick={() => setColor(c)}
-                className="w-9 h-9 rounded-full border-2"
-                style={{ background: c, borderColor: color === c ? '#1D1D1F' : 'transparent' }}
+                className="w-10 h-10 rounded-full border-2"
+                style={{ background: c, borderColor: color === c ? 'var(--color-text)' : 'transparent' }}
               />
             ))}
           </div>

@@ -2,42 +2,35 @@ import type { InputHTMLAttributes, SelectHTMLAttributes, ReactNode } from 'react
 import type { MovementType } from '../types/models'
 import { formatNumberInput, parseNumberInput } from '../utils/currency'
 
+const controlBase =
+  'w-full min-h-[var(--tap)] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-[var(--sp-4)] py-[var(--sp-3)] text-[var(--fs-md)] outline-none focus:border-[var(--color-accent)] transition-colors'
+
 export function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
   return (
-    <label className="block mb-5">
-      <span className="block text-[15px] font-semibold text-[var(--color-text)] mb-2">{label}</span>
+    <label className="block mb-[var(--sp-5)]">
+      <span className="block text-[var(--fs-base)] font-semibold text-[var(--color-text)] mb-[var(--sp-2)]">{label}</span>
       {children}
-      {hint && <span className="block text-[13px] text-[var(--color-text-secondary)] mt-1.5">{hint}</span>}
+      {hint && <span className="block text-[var(--fs-xs)] text-[var(--color-text-secondary)] mt-1.5">{hint}</span>}
     </label>
   )
 }
 
 export function TextInput(props: InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      {...props}
-      className={`w-full rounded-[14px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[17px] outline-none focus:border-[var(--color-accent)] transition-colors ${props.className ?? ''}`}
-    />
-  )
+  return <input {...props} className={`${controlBase} ${props.className ?? ''}`} />
 }
 
 export function SelectInput(props: SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <select
-      {...props}
-      className={`w-full rounded-[14px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3.5 text-[17px] outline-none focus:border-[var(--color-accent)] transition-colors ${props.className ?? ''}`}
-    />
-  )
+  return <select {...props} className={`${controlBase} ${props.className ?? ''}`} />
 }
 
 export function TypeToggle({ value, onChange }: { value: MovementType; onChange: (v: MovementType) => void }) {
   return (
-    <div className="flex bg-[var(--color-muted)] rounded-[16px] p-1.5 gap-1">
+    <div className="flex bg-[var(--color-muted)] rounded-[var(--radius-lg)] p-[0.3125rem] gap-[var(--sp-1)]">
       <button
         type="button"
         onClick={() => onChange('gasto')}
         aria-pressed={value === 'gasto'}
-        className={`flex-1 py-3 rounded-[12px] text-[16px] font-semibold transition-colors ${
+        className={`flex-1 min-h-[var(--tap)] rounded-[var(--radius-md)] text-[var(--fs-md)] font-semibold transition-colors ${
           value === 'gasto' ? 'bg-[var(--color-surface)] shadow-sm' : 'text-[var(--color-text-secondary)]'
         }`}
         style={value === 'gasto' ? { color: 'var(--color-expense)' } : undefined}
@@ -48,7 +41,7 @@ export function TypeToggle({ value, onChange }: { value: MovementType; onChange:
         type="button"
         onClick={() => onChange('ingreso')}
         aria-pressed={value === 'ingreso'}
-        className={`flex-1 py-3 rounded-[12px] text-[16px] font-semibold transition-colors ${
+        className={`flex-1 min-h-[var(--tap)] rounded-[var(--radius-md)] text-[var(--fs-md)] font-semibold transition-colors ${
           value === 'ingreso' ? 'bg-[var(--color-surface)] shadow-sm' : 'text-[var(--color-text-secondary)]'
         }`}
         style={value === 'ingreso' ? { color: 'var(--color-income)' } : undefined}
@@ -63,7 +56,7 @@ export function AmountInput({ value, onChange }: { value: number; onChange: (v: 
   const display = formatNumberInput(value)
   return (
     <div className="relative">
-      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[22px] font-semibold text-[var(--color-text-secondary)]">
+      <span className="absolute left-[var(--sp-4)] top-1/2 -translate-y-1/2 text-[var(--fs-xl)] font-semibold text-[var(--color-text-secondary)]">
         $
       </span>
       <input
@@ -72,7 +65,7 @@ export function AmountInput({ value, onChange }: { value: number; onChange: (v: 
         onChange={(e) => onChange(parseNumberInput(e.target.value))}
         placeholder="0"
         aria-label="Valor"
-        className="w-full rounded-[14px] border border-[var(--color-border)] bg-[var(--color-surface)] pl-10 pr-4 py-4 text-[26px] font-bold outline-none focus:border-[var(--color-accent)] transition-colors"
+        className="amount w-full min-h-[var(--tap)] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] pl-10 pr-[var(--sp-4)] py-[var(--sp-4)] text-[var(--fs-3xl)] font-bold outline-none focus:border-[var(--color-accent)] transition-colors"
       />
     </div>
   )

@@ -25,13 +25,13 @@ export function Login() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div
-            className="w-14 h-14 rounded-[16px] flex items-center justify-center text-white font-bold text-[24px] mx-auto mb-3"
+            className="w-14 h-14 rounded-[var(--radius-lg)] flex items-center justify-center text-white font-bold text-[var(--fs-2xl)] mx-auto mb-3"
             style={{ background: 'var(--color-accent)' }}
           >
             $
           </div>
-          <h1 className="text-[26px] font-bold">Mis Finanzas</h1>
-          <p className="text-[var(--color-text-secondary)] text-[15px]">Inicia sesión para continuar</p>
+          <h1 className="t-h1">Mis Finanzas</h1>
+          <p className="text-[var(--color-text-secondary)] text-[var(--fs-base)]">Inicia sesión para continuar</p>
         </div>
 
         <Card padding="lg">
@@ -63,7 +63,7 @@ export function Login() {
             </Field>
 
             {error && (
-              <p className="text-[15px] mb-4 font-medium" style={{ color: 'var(--color-expense)' }}>
+              <p className="text-[var(--fs-base)] mb-4 font-medium" style={{ color: 'var(--color-expense)' }}>
                 {error}
               </p>
             )}
@@ -74,7 +74,7 @@ export function Login() {
           </form>
         </Card>
 
-        <p className="text-center text-[15px] text-[var(--color-text-secondary)] mt-6">
+        <p className="text-center text-[var(--fs-base)] text-[var(--color-text-secondary)] mt-6">
           ¿No tienes cuenta?{' '}
           <Link to="/registro" className="font-semibold" style={{ color: 'var(--color-accent)' }}>
             Regístrate con un código de invitación

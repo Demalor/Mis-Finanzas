@@ -8,7 +8,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const base =
-  'inline-flex items-center justify-center gap-2 font-semibold rounded-2xl transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none select-none'
+  'inline-flex items-center justify-center gap-2 font-semibold rounded-[var(--radius-md)] transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none select-none whitespace-nowrap'
 
 const variants: Record<string, string> = {
   primary: 'text-white shadow-sm hover:brightness-110',
@@ -18,8 +18,8 @@ const variants: Record<string, string> = {
 }
 
 const sizes: Record<string, string> = {
-  md: 'px-5 py-3 text-[16px] min-h-[48px]',
-  lg: 'px-7 py-4 text-[18px] min-h-[56px]',
+  md: 'px-[var(--sp-5)] py-[var(--sp-3)] text-[var(--fs-md)] min-h-[var(--tap)]',
+  lg: 'px-[var(--sp-6)] py-[var(--sp-4)] text-[var(--fs-lg)] min-h-[3.25rem]',
 }
 
 export function Button({ variant = 'primary', size = 'md', icon, children, className = '', style, ...props }: ButtonProps) {

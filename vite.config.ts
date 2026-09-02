@@ -5,4 +5,19 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   base: '/Mis-Finanzas/',
   plugins: [react(), tailwindcss()],
+  build: {
+    rollupOptions: {
+      output: {
+        // Agrupa las librerías grandes en chunks estables: así un cambio de
+        // código de una página no invalida el caché de firebase/recharts/react.
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          if (id.includes('@firebase') || id.includes('/firebase/')) return 'firebase'
+          if (id.includes('recharts') || id.includes('/d3-') || id.includes('victory-vendor')) return 'recharts'
+          if (id.includes('react-router') || id.includes('@remix-run')) return 'router'
+          if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/')) return 'react'
+        },
+      },
+    },
+  },
 })

@@ -5,6 +5,7 @@ import { Button } from '../components/Button'
 import { Modal } from '../components/Modal'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { EmptyState } from '../components/EmptyState'
+import { PageHeader } from '../components/PageHeader'
 import { Field, TextInput, SelectInput } from '../components/FormControls'
 import { TransfersHistory } from '../components/TransfersHistory'
 import type { Account, AccountType, Currency } from '../types/models'
@@ -12,7 +13,7 @@ import { CURRENCIES } from '../types/models'
 import { formatAmount } from '../utils/currency'
 import { daysUntil } from '../utils/loanMath'
 import { fetchExchangeRate } from '../utils/exchangeRate'
-import { todayISO } from '../utils/date'
+import { todayISO, nextMonthlyDate } from '../utils/date'
 
 const TYPE_LABELS: Record<AccountType, { label: string; icon: string }> = {
   efectivo: { label: 'Efectivo', icon: '💵' },
@@ -48,24 +49,24 @@ export function Accounts() {
   const creditCards = accounts.filter((a) => a.tipo === 'tarjeta_credito')
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-[28px] font-bold">Cuentas</h1>
-          <p className="text-[var(--color-text-secondary)] text-[15px]">Efectivo, cuentas bancarias y tarjetas, en cualquier moneda</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => setExchanging(true)} className="flex-1 sm:flex-none">💱 Cambiar moneda</Button>
-          <Button onClick={() => setCreating(true)} className="flex-1 sm:flex-none">+ Nueva</Button>
-        </div>
-      </div>
+    <div className="page">
+      <PageHeader
+        title="Cuentas"
+        subtitle="Efectivo, cuentas bancarias y tarjetas, en cualquier moneda"
+        action={
+          <>
+            <Button variant="secondary" onClick={() => setExchanging(true)} className="flex-1 md:flex-none">💱 Cambiar moneda</Button>
+            <Button onClick={() => setCreating(true)} className="flex-1 md:flex-none">+ Nueva</Button>
+          </>
+        }
+      />
 
       <div>
-        <h2 className="text-[18px] font-bold mb-3">Efectivo y bancos</h2>
+        <h2 className="t-h2 mb-[var(--sp-3)]">Efectivo y bancos</h2>
         {regularAccounts.length === 0 ? (
           <EmptyState icon="💰" title="Aún no tienes cuentas" message="Crea tu primera cuenta de efectivo o banco." />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="card-grid">
             {regularAccounts.map((a) => (
               <AccountCard
                 key={a.id}
@@ -80,11 +81,11 @@ export function Accounts() {
       </div>
 
       <div>
-        <h2 className="text-[18px] font-bold mb-3">Tarjetas de crédito</h2>
+        <h2 className="t-h2 mb-[var(--sp-3)]">Tarjetas de crédito</h2>
         {creditCards.length === 0 ? (
           <EmptyState icon="💳" title="No tienes tarjetas registradas" message="Agrégalas para llevar el control de tu cupo y fechas de pago." />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="card-grid">
             {creditCards.map((a) => (
               <CreditCardCard
                 key={a.id}
@@ -99,7 +100,7 @@ export function Accounts() {
       </div>
 
       <div>
-        <h2 className="text-[18px] font-bold mb-3">Historial de cambios de moneda</h2>
+        <h2 className="t-h2 mb-[var(--sp-3)]">Historial de cambios de moneda</h2>
         <Card padding="sm">
           <TransfersHistory />
         </Card>
@@ -130,16 +131,16 @@ export function Accounts() {
 function AccountCard({ account, balance, onEdit, onDelete }: { account: Account; balance: number; onEdit: () => void; onDelete: () => void }) {
   return (
     <Card padding="md" className="flex items-center gap-3">
-      <div className="w-12 h-12 rounded-full flex items-center justify-center text-[22px] shrink-0 bg-[var(--color-muted)]">
+      <div className="w-12 h-12 rounded-full flex items-center justify-center text-[var(--fs-xl)] shrink-0 bg-[var(--color-muted)]">
         {TYPE_LABELS[account.tipo].icon}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-semibold text-[16px] truncate">{account.nombre}</div>
-        <div className="text-[13px] text-[var(--color-text-secondary)]">{TYPE_LABELS[account.tipo].label} · {account.moneda}</div>
-        <div className="text-[17px] font-bold mt-1">{formatAmount(balance, account.moneda)}</div>
+        <div className="font-semibold text-[var(--fs-md)] truncate">{account.nombre}</div>
+        <div className="text-[var(--fs-xs)] text-[var(--color-text-secondary)]">{TYPE_LABELS[account.tipo].label} · {account.moneda}</div>
+        <div className="text-[var(--fs-md)] font-bold mt-1">{formatAmount(balance, account.moneda)}</div>
       </div>
-      <button onClick={onEdit} aria-label="Editar cuenta" className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[var(--color-muted)] text-[17px]">✏️</button>
-      <button onClick={onDelete} aria-label="Eliminar cuenta" className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-red-50 text-[17px]" style={{ color: 'var(--color-expense)' }}>🗑️</button>
+      <button onClick={onEdit} aria-label="Editar cuenta" className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-[var(--color-muted)] text-[var(--fs-md)]">✏️</button>
+      <button onClick={onDelete} aria-label="Eliminar cuenta" className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-[var(--color-expense-soft)] text-[var(--fs-md)]" style={{ color: 'var(--color-expense)' }}>🗑️</button>
     </Card>
   )
 }
@@ -149,13 +150,10 @@ function CreditCardCard({ account, balance, onEdit, onDelete }: { account: Accou
   const disponible = cupo - balance
   const pct = cupo > 0 ? Math.min(100, (balance / cupo) * 100) : 0
 
-  const proximoPago = useMemo(() => {
-    if (!account.fechaPago) return null
-    const today = new Date()
-    let d = new Date(today.getFullYear(), today.getMonth(), account.fechaPago)
-    if (d < today) d = new Date(today.getFullYear(), today.getMonth() + 1, account.fechaPago)
-    return d.toISOString().slice(0, 10)
-  }, [account.fechaPago])
+  const proximoPago = useMemo(
+    () => (account.fechaPago ? nextMonthlyDate(account.fechaPago) : null),
+    [account.fechaPago]
+  )
 
   const dias = proximoPago ? daysUntil(proximoPago) : null
   const showAlert = dias !== null && dias <= (account.diasAvisoPago ?? 5)
@@ -163,19 +161,19 @@ function CreditCardCard({ account, balance, onEdit, onDelete }: { account: Accou
   return (
     <Card padding="md">
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-12 h-12 rounded-full flex items-center justify-center text-[22px] shrink-0 bg-[var(--color-muted)]">💳</div>
+        <div className="w-12 h-12 rounded-full flex items-center justify-center text-[var(--fs-xl)] shrink-0 bg-[var(--color-muted)]">💳</div>
         <div className="flex-1 min-w-0">
-          <div className="font-semibold text-[16px] truncate">{account.nombre}</div>
-          <div className="text-[13px] text-[var(--color-text-secondary)]">{account.moneda}</div>
+          <div className="font-semibold text-[var(--fs-md)] truncate">{account.nombre}</div>
+          <div className="text-[var(--fs-xs)] text-[var(--color-text-secondary)]">{account.moneda}</div>
         </div>
-        <button onClick={onEdit} aria-label="Editar tarjeta" className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-[var(--color-muted)] text-[16px]">✏️</button>
-        <button onClick={onDelete} aria-label="Eliminar tarjeta" className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-red-50 text-[16px]" style={{ color: 'var(--color-expense)' }}>🗑️</button>
+        <button onClick={onEdit} aria-label="Editar tarjeta" className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-[var(--color-muted)] text-[var(--fs-md)]">✏️</button>
+        <button onClick={onDelete} aria-label="Eliminar tarjeta" className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-[var(--color-expense-soft)] text-[var(--fs-md)]" style={{ color: 'var(--color-expense)' }}>🗑️</button>
       </div>
 
       <div className="h-2.5 bg-[var(--color-muted)] rounded-full overflow-hidden mb-2">
         <div className="h-full rounded-full" style={{ width: `${pct}%`, background: pct > 90 ? 'var(--color-expense)' : 'var(--color-accent)' }} />
       </div>
-      <div className="grid grid-cols-2 gap-2 text-[14px] mb-2">
+      <div className="grid grid-cols-2 gap-2 text-[var(--fs-sm)] mb-2">
         <div>
           <div className="text-[var(--color-text-secondary)]">Debes</div>
           <div className="font-semibold">{formatAmount(balance, account.moneda)}</div>
@@ -186,12 +184,12 @@ function CreditCardCard({ account, balance, onEdit, onDelete }: { account: Accou
         </div>
       </div>
       {account.fechaPago && (
-        <p className="text-[13px] text-[var(--color-text-secondary)]">
+        <p className="text-[var(--fs-xs)] text-[var(--color-text-secondary)]">
           Pago: día {account.fechaPago} de cada mes {account.fechaCorte ? `· Corte: día ${account.fechaCorte}` : ''}
         </p>
       )}
       {showAlert && (
-        <p className="mt-2 text-[14px] font-semibold" style={{ color: dias! < 0 ? 'var(--color-expense)' : '#FF9500' }}>
+        <p className="mt-2 text-[var(--fs-sm)] font-semibold" style={{ color: dias! < 0 ? 'var(--color-expense)' : 'var(--color-warn)' }}>
           {dias! < 0 ? '⚠️ Se venció el pago' : `⏰ Vence en ${dias} día(s)`}
         </p>
       )}

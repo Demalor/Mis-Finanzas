@@ -27,13 +27,13 @@ export function Register() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div
-            className="w-14 h-14 rounded-[16px] flex items-center justify-center text-white font-bold text-[24px] mx-auto mb-3"
+            className="w-14 h-14 rounded-[var(--radius-lg)] flex items-center justify-center text-white font-bold text-[var(--fs-2xl)] mx-auto mb-3"
             style={{ background: 'var(--color-accent)' }}
           >
             $
           </div>
-          <h1 className="text-[26px] font-bold">Crear cuenta</h1>
-          <p className="text-[var(--color-text-secondary)] text-[15px]">Necesitas un código de invitación de tu familia</p>
+          <h1 className="t-h1">Crear cuenta</h1>
+          <p className="text-[var(--color-text-secondary)] text-[var(--fs-base)]">Necesitas un código de invitación de tu familia</p>
         </div>
 
         <Card padding="lg">
@@ -88,7 +88,7 @@ export function Register() {
             </Field>
 
             {error && (
-              <p className="text-[15px] mb-4 font-medium" style={{ color: 'var(--color-expense)' }}>
+              <p className="text-[var(--fs-base)] mb-4 font-medium" style={{ color: 'var(--color-expense)' }}>
                 {error}
               </p>
             )}
@@ -99,7 +99,7 @@ export function Register() {
           </form>
         </Card>
 
-        <p className="text-center text-[15px] text-[var(--color-text-secondary)] mt-6">
+        <p className="text-center text-[var(--fs-base)] text-[var(--color-text-secondary)] mt-6">
           ¿Ya tienes cuenta?{' '}
           <Link to="/login" className="font-semibold" style={{ color: 'var(--color-accent)' }}>
             Inicia sesión

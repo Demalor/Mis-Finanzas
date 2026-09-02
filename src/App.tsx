@@ -4,6 +4,7 @@ import { AuthProvider } from './firebase/AuthContext'
 import { DataProvider } from './context/DataContext'
 import { Layout } from './components/Layout'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { Loading } from './components/Loading'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
 import { Dashboard } from './pages/Dashboard'
@@ -20,16 +21,12 @@ const Admin = lazy(() => import('./pages/Admin').then((m) => ({ default: m.Admin
 const Accounts = lazy(() => import('./pages/Accounts').then((m) => ({ default: m.Accounts })))
 const Loans = lazy(() => import('./pages/Loans').then((m) => ({ default: m.Loans })))
 
-function PageFallback() {
-  return <div className="text-center py-20 text-[var(--color-text-secondary)]">Cargando…</div>
-}
-
 function App() {
   return (
     <AuthProvider>
       <DataProvider>
         <HashRouter>
-          <Suspense fallback={<PageFallback />}>
+          <Suspense fallback={<Loading />}>
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/registro" element={<Register />} />

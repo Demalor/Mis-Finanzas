@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
-import { initializeFirestore } from 'firebase/firestore'
+import { initializeFirestore } from 'firebase/firestore/lite'
 
 // Configuración del proyecto de Firebase "Mis-Finanzas"
 const firebaseConfig = {
