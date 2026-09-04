@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 
 type Theme = 'light' | 'dark'
-const STORAGE_KEY = 'finanzas-theme'
+const STORAGE_KEY = 'nummi-theme'
 
 interface ThemeContextValue {
   theme: Theme

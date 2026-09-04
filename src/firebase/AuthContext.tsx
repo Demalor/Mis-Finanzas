@@ -10,9 +10,10 @@ import {
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   onAuthStateChanged,
+  deleteUser,
   type User,
 } from 'firebase/auth'
-import { doc, getDoc, runTransaction, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore/lite'
+import { deleteDoc, doc, getDoc, runTransaction, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore/lite'
 import { auth, db } from './config'
 import type { UserProfile } from '../types/models'
 
@@ -103,19 +104,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         activo: true,
         creadoEn: Date.now(),
       }
-      await setDoc(doc(db, 'usuarios', credential.user.uid), newProfile)
 
-      await runTransaction(db, async (tx) => {
-        const freshCode = await tx.get(codeRef)
-        if (!freshCode.exists() || freshCode.data().used) {
-          throw new Error('code-already-used')
-        }
-        tx.update(codeRef, {
-          used: true,
-          usedBy: credential.user.uid,
-          usedAt: serverTimestamp(),
+      try {
+        await setDoc(doc(db, 'usuarios', credential.user.uid), newProfile)
+        await runTransaction(db, async (tx) => {
+          const freshCode = await tx.get(codeRef)
+          if (!freshCode.exists() || freshCode.data().used) {
+            throw new Error('code-already-used')
+          }
+          tx.update(codeRef, {
+            used: true,
+            usedBy: credential.user.uid,
+            usedAt: serverTimestamp(),
+          })
         })
-      })
+      } catch {
+        // Algo falló DESPUÉS de crear la cuenta (típicamente: alguien usó el
+        // código entre la verificación y ahora). Deshacemos la cuenta a medias
+        // para que se pueda reintentar sin dejar un usuario huérfano.
+        await deleteDoc(doc(db, 'usuarios', credential.user.uid)).catch(() => {})
+        await deleteUser(credential.user).catch(() => {})
+        setError('No se pudo reservar el código de invitación (quizá alguien lo usó primero). Intenta con otro código.')
+        return false
+      }
 
       setProfile(newProfile)
       return true

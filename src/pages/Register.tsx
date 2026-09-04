@@ -33,7 +33,7 @@ export function Register() {
             $
           </div>
           <h1 className="t-h1">Crear cuenta</h1>
-          <p className="text-[var(--color-text-secondary)] text-[var(--fs-base)]">Necesitas un código de invitación de tu familia</p>
+          <p className="text-[var(--color-text-secondary)] text-[var(--fs-base)]">Necesitas un código de invitación para crear tu cuenta</p>
         </div>
 
         <Card padding="lg">

@@ -22,7 +22,7 @@ export function Settings() {
   async function handleExportJSON() {
     if (!user) return
     const backup = await exportBackup(user.uid)
-    downloadFile(JSON.stringify(backup, null, 2), `respaldo-finanzas-${todayForFile()}.json`, 'application/json')
+    downloadFile(JSON.stringify(backup, null, 2), `nummi-respaldo-${todayForFile()}.json`, 'application/json')
     setMessage({ text: 'Copia de seguridad exportada correctamente.' })
   }
 
@@ -33,7 +33,7 @@ export function Settings() {
       return [m.date, m.type === 'ingreso' ? 'Ingreso' : 'Gasto', cat?.name ?? 'Sin categoría', csvEscape(m.description), String(m.amount)]
     })
     const csv = [header, ...rows].map((r) => r.join(',')).join('\n')
-    downloadFile('\uFEFF' + csv, `movimientos-${todayForFile()}.csv`, 'text/csv')
+    downloadFile('\uFEFF' + csv, `nummi-movimientos-${todayForFile()}.csv`, 'text/csv')
     setMessage({ text: 'Movimientos exportados a CSV correctamente.' })
   }
 

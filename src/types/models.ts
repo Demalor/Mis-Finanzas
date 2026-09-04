@@ -118,6 +118,7 @@ export interface Budget {
   categoryId: string
   month: string // formato "YYYY-MM"
   amount: number
+  currency?: Currency // moneda del límite; los presupuestos viejos se asumen en COP
 }
 
 // ---------- Multiusuario (Firebase) ----------

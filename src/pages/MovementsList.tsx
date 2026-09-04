@@ -12,6 +12,7 @@ import { TextInput, SelectInput } from '../components/FormControls'
 import { RecurringTab } from '../components/RecurringTab'
 
 import { formatAmount } from '../utils/currency'
+import { netByCurrency } from '../utils/calculations'
 
 type Tab = 'lista' | 'recurrentes'
 
@@ -49,7 +50,8 @@ export function MovementsList() {
     return list
   }, [movements, typeFilter, categoryFilter, search, sortDir, categories])
 
-  const total = filtered.reduce((sum, m) => sum + (m.type === 'ingreso' ? m.amount : -m.amount), 0)
+  // Un neto por moneda: nunca se suman monedas distintas en un mismo número.
+  const totalsByCurrency = useMemo(() => netByCurrency(filtered, accountCurrency), [filtered, accountCurrency])
 
   return (
     <div className="page">
@@ -103,8 +105,20 @@ export function MovementsList() {
         <span>
           Mostrando {filtered.length} de {movements.length} movimientos
         </span>
-        <span className="amount font-semibold shrink-0" style={{ color: total >= 0 ? 'var(--color-income)' : 'var(--color-expense)' }}>
-          Total: {formatAmount(total, 'COP')}
+        <span className="flex flex-wrap justify-end gap-x-3 gap-y-0.5 shrink-0">
+          {totalsByCurrency.length === 0 ? (
+            <span className="amount font-semibold text-[var(--color-text-secondary)]">Total: —</span>
+          ) : (
+            totalsByCurrency.map(({ currency, net }) => (
+              <span
+                key={currency}
+                className="amount font-semibold"
+                style={{ color: net >= 0 ? 'var(--color-income)' : 'var(--color-expense)' }}
+              >
+                {formatAmount(net, currency)}
+              </span>
+            ))
+          )}
         </span>
       </div>
 

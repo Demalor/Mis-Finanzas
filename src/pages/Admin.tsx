@@ -58,7 +58,7 @@ export function Admin() {
       <div>
         <h1 className="t-h1">Administración</h1>
         <p className="text-[var(--color-text-secondary)] text-[var(--fs-sm)] mt-1">
-          Gestiona los códigos de invitación y las cuentas de la familia. No puedes ver los movimientos ni montos de nadie.
+          Gestiona los códigos de invitación y las cuentas de los usuarios. No puedes ver los movimientos ni montos de nadie.
         </p>
       </div>
 
@@ -107,9 +107,9 @@ export function Admin() {
       </Card>
 
       <Card padding="lg">
-        <h2 className="t-h3 mb-4">Cuentas de la familia</h2>
+        <h2 className="t-h3 mb-4">Usuarios registrados</h2>
         {users.length === 0 ? (
-          <EmptyState icon="👨‍👩‍👧" title="Aún no hay cuentas registradas" />
+          <EmptyState icon="👥" title="Aún no hay cuentas registradas" />
         ) : (
           <div className="flex flex-col divide-y divide-[var(--color-border)]">
             {users.map((u) => (

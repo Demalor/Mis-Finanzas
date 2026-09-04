@@ -1,8 +1,8 @@
-# Mis Finanzas — App de finanzas familiares multiusuario
+# Nummi — App de finanzas personales multiusuario
 
-Aplicación web para que cada miembro de la familia administre sus propios ingresos y
-gastos, con cuentas privadas independientes. Usa Firebase (Authentication + Firestore)
-como backend y se publica gratis en GitHub Pages.
+Aplicación web para que cada persona administre sus propios ingresos y gastos, con
+cuentas privadas independientes. Usa Firebase (Authentication + Firestore) como
+backend y se publica gratis en GitHub Pages.
 
 ## Cómo ejecutarla en local
 
@@ -40,7 +40,7 @@ Esto compila la aplicación y la publica en la rama `gh-pages` del repositorio.
 - **Organización**: categorías de ingreso/gasto, fuentes de ingreso, y presupuestos mensuales por categoría.
 - **Resumen**: gráficos (distribución por categoría, evolución mensual) y vista de tabla tipo Excel con filtros, orden y selección múltiple.
 - **Configuración**: perfil, modo oscuro/claro, respaldo (exportar/importar JSON, exportar CSV), y borrado de datos.
-- **Administración** (solo el admin): códigos de invitación para nuevas cuentas, y gestión de cuentas familiares (activar/desactivar, última conexión) — sin acceso a los datos financieros de nadie.
+- **Administración** (solo el admin): códigos de invitación para nuevas cuentas, y gestión de cuentas de usuarios (activar/desactivar, última conexión) — sin acceso a los datos financieros de nadie.
 
 ## Tecnología
 

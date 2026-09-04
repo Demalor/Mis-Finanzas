@@ -1,0 +1,65 @@
+rules_version = '2';
+
+// Reglas de seguridad de Firestore para "Mis Finanzas".
+//
+// Modelo de datos: cada usuario tiene su propio subárbol en
+// usuarios/{uid}/{coleccion}/{docId}. Nadie puede tocar los datos de otro.
+// El rol 'admin' solo habilita el panel de administración (listar usuarios y
+// activar/desactivar cuentas); nunca da acceso a datos financieros ajenos.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function esAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol == "admin";
+    }
+
+    match /usuarios/{uid} {
+      // Cada quien lee su propio perfil; el admin lee y lista todos.
+      allow read: if request.auth != null && (request.auth.uid == uid || esAdmin());
+
+      // Alta: solo el propio usuario, y forzando rol 'miembro' + activo true.
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.rol == "miembro"
+        && request.resource.data.activo == true;
+
+      // El propio usuario solo puede tocar estos dos campos de su perfil.
+      allow update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(["ultimaConexion", "novedadesVistas"]);
+
+      // El admin solo puede cambiar 'activo', y nunca de otro admin.
+      allow update: if esAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["activo"])
+        && resource.data.rol != "admin";
+
+      allow delete: if false;
+
+      // Datos financieros del usuario: solo el dueño, lectura y escritura.
+      match /{coleccion}/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
+    match /codigosInvitacion/{code} {
+      // Lectura puntual: necesaria antes de registrarse (todavía sin sesión).
+      allow get: if true;
+      // El listado completo y la creación: solo el admin.
+      allow list: if esAdmin();
+      allow create: if esAdmin() && request.resource.data.used == false;
+
+      // Consumir un código: solo quien llama, marcándolo usado una sola vez y
+      // tocando únicamente estos tres campos.
+      allow update: if request.auth != null
+        && resource.data.used == false
+        && request.resource.data.used == true
+        && request.resource.data.usedBy == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(["used", "usedBy", "usedAt"]);
+
+      allow delete: if false;
+    }
+  }
+}

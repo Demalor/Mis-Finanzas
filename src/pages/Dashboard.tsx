@@ -129,8 +129,12 @@ export function Dashboard() {
 
   return (
     <div className="page">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-[var(--sp-4)]">
-        <div className="flex items-center gap-[var(--sp-3)] min-w-0">
+      <div className="flex flex-col gap-[var(--sp-4)]">
+        {/* Móvil: Inicio · (tema centrado) · Nummi a la derecha — al achicar,
+            primero se va el botón (<480px), luego el nombre (<380px).
+            Tableta en adelante: el menú lateral ya muestra "Nummi", así que aquí
+            se oculta y el botón de tema pasa a la derecha. */}
+        <div className="grid grid-cols-[1fr_auto_1fr] md:grid-cols-[1fr_auto] items-center gap-[var(--sp-3)]">
           <div className="min-w-0">
             <h1 className="t-h1">Inicio</h1>
             <p className="text-[var(--color-text-secondary)] text-[var(--fs-sm)] mt-1">Tu resumen financiero del mes</p>
@@ -138,12 +142,15 @@ export function Dashboard() {
           <button
             onClick={toggleTheme}
             aria-label={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-            className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--fs-lg)] hover:bg-[var(--color-muted)]"
+            className="hidden min-[480px]:flex w-11 h-11 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--fs-lg)] hover:bg-[var(--color-muted)] md:order-last"
           >
             {theme === 'dark' ? '☀️' : '🌙'}
           </button>
+          {/* col-start-3: cuando el botón está oculto (display:none) sale del
+              flujo del grid; sin esto, "Nummi" caería a la columna del medio. */}
+          <span className="hidden min-[380px]:block md:hidden col-start-3 justify-self-end font-bold text-[var(--fs-xl)] tracking-tight">Nummi</span>
         </div>
-        <MonthSelector month={month} onChange={setMonth} className="w-full md:w-fit md:shrink-0" />
+        <MonthSelector month={month} onChange={setMonth} className="w-full md:w-fit md:self-end" />
       </div>
 
       {alerts.length > 0 && (

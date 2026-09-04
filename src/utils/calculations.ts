@@ -1,5 +1,26 @@
-import type { Movement, Category } from '../types/models'
+import type { Movement, Category, Currency } from '../types/models'
+import { CURRENCIES } from '../types/models'
 import { toMonthKey } from './date'
+
+// La moneda de un movimiento es la de su cuenta. Los movimientos sin cuenta
+// (datos anteriores a que existieran las cuentas) se asumen en COP.
+export function currencyOf(movement: Movement, accountCurrency: Map<string, Currency>): Currency {
+  return (movement.accountId ? accountCurrency.get(movement.accountId) : undefined) ?? 'COP'
+}
+
+// Neto (ingresos − gastos) desglosado por moneda, en el orden oficial de
+// CURRENCIES. Solo incluye las monedas que realmente aparecen en la lista.
+export function netByCurrency(
+  movements: Movement[],
+  accountCurrency: Map<string, Currency>
+): { currency: Currency; net: number }[] {
+  const totals = new Map<Currency, number>()
+  for (const m of movements) {
+    const c = currencyOf(m, accountCurrency)
+    totals.set(c, (totals.get(c) ?? 0) + (m.type === 'ingreso' ? m.amount : -m.amount))
+  }
+  return CURRENCIES.filter((c) => totals.has(c.code)).map((c) => ({ currency: c.code, net: totals.get(c.code)! }))
+}
 
 export function movementsInMonth(movements: Movement[], monthKey: string): Movement[] {
   return movements.filter((m) => toMonthKey(m.date) === monthKey)

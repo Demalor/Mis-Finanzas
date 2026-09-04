@@ -21,6 +21,7 @@ export function AddMovement() {
   const [date, setDate] = useState<string>(editing?.date ?? todayISO())
   const [description, setDescription] = useState<string>(editing?.description ?? '')
   const [saved, setSaved] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
   const usableAccounts = accounts.filter((a) => a.tipo !== 'tarjeta_credito' || type === 'gasto')
@@ -30,6 +31,7 @@ export function AddMovement() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (submitting) return
     setError('')
     if (amount <= 0) {
       setError('Ingresa un valor mayor a cero.')
@@ -48,10 +50,17 @@ export function AddMovement() {
       accountId: effectiveAccountId || undefined,
       sourceId: type === 'ingreso' && sourceId ? sourceId : undefined,
     }
-    if (editing) {
-      await updateMovement(editing.id, payload)
-    } else {
-      await addMovement(payload)
+    setSubmitting(true)
+    try {
+      if (editing) {
+        await updateMovement(editing.id, payload)
+      } else {
+        await addMovement(payload)
+      }
+    } catch {
+      setError('No se pudo guardar el movimiento. Revisa tu conexión e inténtalo de nuevo.')
+      setSubmitting(false)
+      return
     }
     setSaved(true)
     setTimeout(() => navigate('/movimientos'), 700)
@@ -138,8 +147,22 @@ export function AddMovement() {
             </p>
           )}
 
-          <Button type="submit" size="lg" className="w-full">
-            {saved ? '✓ Guardado' : editing ? 'Guardar cambios' : 'Agregar movimiento'}
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full"
+            disabled={submitting || saved}
+            style={submitting ? { backgroundColor: 'var(--color-muted)', color: 'var(--color-text-secondary)' } : undefined}
+          >
+            {submitting
+              ? editing
+                ? 'Guardando cambios…'
+                : 'Movimiento en proceso…'
+              : saved
+                ? '✓ Guardado'
+                : editing
+                  ? 'Guardar cambios'
+                  : 'Agregar movimiento'}
           </Button>
         </form>
       </Card>

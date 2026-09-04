@@ -40,7 +40,7 @@ export function Layout() {
           >
             $
           </div>
-          <span className="font-bold text-[var(--fs-lg)]">Mis Finanzas</span>
+          <span className="font-bold text-[2rem] leading-none tracking-tight">Nummi</span>
         </div>
 
         {profile && (

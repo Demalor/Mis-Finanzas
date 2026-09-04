@@ -12,7 +12,8 @@ import { formatAmount } from '../utils/currency'
 import { todayISO, formatDateReadable } from '../utils/date'
 
 export function RecurringTab() {
-  const { recurring, categories, addRecurring, updateRecurring, deleteRecurring } = useData()
+  const { recurring, categories, accounts, addRecurring, updateRecurring, deleteRecurring } = useData()
+  const accountCurrency = new Map(accounts.map((a) => [a.id, a.moneda]))
   const [creating, setCreating] = useState(false)
   const [toDelete, setToDelete] = useState<RecurringMovement | null>(null)
 
@@ -54,7 +55,8 @@ export function RecurringTab() {
                     className="font-bold text-[var(--fs-md)] shrink-0"
                     style={{ color: r.type === 'ingreso' ? 'var(--color-income)' : 'var(--color-expense)' }}
                   >
-                    {r.type === 'ingreso' ? '+' : '−'} {formatAmount(r.amount, 'COP')}
+                    {r.type === 'ingreso' ? '+' : '−'}{' '}
+                    {formatAmount(r.amount, (r.accountId && accountCurrency.get(r.accountId)) || 'COP')}
                   </div>
                 </div>
                 <div className="flex items-center justify-end gap-2 mt-3">

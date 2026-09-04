@@ -30,7 +30,7 @@ export function Login() {
           >
             $
           </div>
-          <h1 className="t-h1">Mis Finanzas</h1>
+          <h1 className="t-h1">Nummi</h1>
           <p className="text-[var(--color-text-secondary)] text-[var(--fs-base)]">Inicia sesión para continuar</p>
         </div>
 
