@@ -135,7 +135,47 @@ export interface UserProfile {
   monedaPreferida?: Currency // para el total combinado de referencia
   novedadesVistas?: number // última versión de "novedades" que ya vio
   ultimaConexion?: number // timestamp de la última vez que abrió la app
+  dashboardWidgets?: DashboardWidgetConfig[] // panel de widgets personalizable en Inicio
+  tourCompletado?: boolean // false solo en cuentas nuevas; ausente = no se le impone el tour
 }
+
+// ---------- Panel de widgets del Inicio ----------
+
+export type DashboardWidgetType =
+  | 'accountBalance'
+  | 'budgetStatus'
+  | 'categoryTotal'
+  | 'currencyBreakdown'
+  | 'combinedTotal'
+  | 'quickPay'
+  | 'savingsBox'
+
+export interface QuickPayConfig {
+  description: string
+  amount: number
+  categoryId: string
+  type: MovementType
+  accountId?: string
+  sourceId?: string
+}
+
+// Caja de ahorro independiente: no es una cuenta real ni genera movimientos,
+// es una libreta aparte con su propia moneda para no mezclar con cuentas reales.
+export interface SavingsBoxConfig {
+  name: string
+  currency: Currency
+  target: number
+  current: number
+}
+
+export type DashboardWidgetConfig =
+  | { id: string; type: 'accountBalance'; accountId: string }
+  | { id: string; type: 'budgetStatus'; categoryId: string }
+  | { id: string; type: 'categoryTotal'; categoryId: string; movementType: MovementType }
+  | { id: string; type: 'currencyBreakdown' }
+  | { id: string; type: 'combinedTotal' }
+  | { id: string; type: 'quickPay'; config: QuickPayConfig }
+  | { id: string; type: 'savingsBox'; box: SavingsBoxConfig }
 
 export interface InviteCode {
   code: string

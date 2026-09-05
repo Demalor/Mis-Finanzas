@@ -11,22 +11,39 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
   deleteUser,
+  GoogleAuthProvider,
+  signInWithPopup,
+  linkWithCredential,
   type User,
+  type AuthCredential,
 } from 'firebase/auth'
+import type { FirebaseError } from 'firebase/app'
 import { deleteDoc, doc, getDoc, runTransaction, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore/lite'
 import { auth, db } from './config'
-import type { UserProfile } from '../types/models'
+import type { DashboardWidgetConfig, UserProfile } from '../types/models'
+
+const googleProvider = new GoogleAuthProvider()
+
+interface PendingGoogleLink {
+  email: string
+  credential: AuthCredential
+}
 
 interface AuthContextValue {
   user: User | null
   profile: UserProfile | null
   loading: boolean
   error: string
+  pendingGoogleLink: PendingGoogleLink | null
   signUp: (nombre: string, correo: string, password: string, inviteCode: string) => Promise<boolean>
   signIn: (correo: string, password: string) => Promise<boolean>
+  signInWithGoogle: () => Promise<void>
+  completeGoogleLink: (password: string) => Promise<boolean>
   signOut: () => Promise<void>
   clearError: () => void
   markNoveltiesSeen: (version: number) => Promise<void>
+  updateDashboardWidgets: (widgets: DashboardWidgetConfig[]) => Promise<void>
+  completeTour: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -45,6 +62,8 @@ function mapAuthError(code: string): string {
       return 'Correo o contraseña incorrectos.'
     case 'auth/too-many-requests':
       return 'Demasiados intentos. Espera un momento e inténtalo de nuevo.'
+    case 'auth/credential-already-in-use':
+      return 'Esta cuenta de Google ya está vinculada a otro usuario de Nummi.'
     default:
       return 'Ocurrió un error. Inténtalo de nuevo.'
   }
@@ -55,13 +74,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [pendingGoogleLink, setPendingGoogleLink] = useState<PendingGoogleLink | null>(null)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser)
       if (firebaseUser) {
         const snap = await getDoc(doc(db, 'usuarios', firebaseUser.uid))
-        setProfile(snap.exists() ? (snap.data() as UserProfile) : null)
+        if (snap.exists()) {
+          setProfile(snap.data() as UserProfile)
+        } else if (firebaseUser.providerData.some((p) => p.providerId === 'google.com')) {
+          // Primer login con Google para este correo: se crea el perfil de una,
+          // sin código de invitación (decisión explícita: Google se lo salta).
+          const newProfile: UserProfile = {
+            uid: firebaseUser.uid,
+            nombre: firebaseUser.displayName ?? '',
+            correo: firebaseUser.email ?? '',
+            rol: 'miembro',
+            activo: true,
+            creadoEn: Date.now(),
+            tourCompletado: false,
+          }
+          await setDoc(doc(db, 'usuarios', firebaseUser.uid), newProfile)
+          setProfile(newProfile)
+        } else {
+          setProfile(null)
+        }
         // Registra "última conexión" sin bloquear la carga (no crítico si falla)
         updateDoc(doc(db, 'usuarios', firebaseUser.uid), { ultimaConexion: Date.now() }).catch(() => {})
       } else {
@@ -103,6 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         rol: 'miembro',
         activo: true,
         creadoEn: Date.now(),
+        tourCompletado: false,
       }
 
       try {
@@ -155,6 +194,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function signInWithGoogle() {
+    setError('')
+    try {
+      await signInWithPopup(auth, googleProvider)
+    } catch (err: unknown) {
+      const code = (err as { code?: string })?.code
+      if (code === 'auth/account-exists-with-different-credential') {
+        const email = (err as { customData?: { email?: string } }).customData?.email
+        const credential = GoogleAuthProvider.credentialFromError(err as FirebaseError)
+        if (email && credential) {
+          setPendingGoogleLink({ email, credential })
+          return
+        }
+      }
+      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return
+      setError(code ? mapAuthError(code) : 'No se pudo iniciar sesión con Google.')
+    }
+  }
+
+  async function completeGoogleLink(password: string): Promise<boolean> {
+    if (!pendingGoogleLink) return false
+    setError('')
+    try {
+      const result = await signInWithEmailAndPassword(auth, pendingGoogleLink.email, password)
+      await linkWithCredential(result.user, pendingGoogleLink.credential)
+      setPendingGoogleLink(null)
+      return true
+    } catch (err: unknown) {
+      const code = (err as { code?: string })?.code
+      setError(code ? mapAuthError(code) : 'No se pudo vincular la cuenta.')
+      return false
+    }
+  }
+
   async function signOut() {
     await firebaseSignOut(auth)
   }
@@ -165,9 +238,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile((prev) => (prev ? { ...prev, novedadesVistas: version } : prev))
   }
 
+  async function updateDashboardWidgets(widgets: DashboardWidgetConfig[]) {
+    if (!user) return
+    await updateDoc(doc(db, 'usuarios', user.uid), { dashboardWidgets: widgets })
+    setProfile((prev) => (prev ? { ...prev, dashboardWidgets: widgets } : prev))
+  }
+
+  async function completeTour() {
+    if (!user) return
+    await updateDoc(doc(db, 'usuarios', user.uid), { tourCompletado: true })
+    setProfile((prev) => (prev ? { ...prev, tourCompletado: true } : prev))
+  }
+
   return (
     <AuthContext.Provider
-      value={{ user, profile, loading, error, signUp, signIn, signOut, clearError: () => setError(''), markNoveltiesSeen }}
+      value={{
+        user,
+        profile,
+        loading,
+        error,
+        pendingGoogleLink,
+        signUp,
+        signIn,
+        signInWithGoogle,
+        completeGoogleLink,
+        signOut,
+        clearError: () => setError(''),
+        markNoveltiesSeen,
+        updateDashboardWidgets,
+        completeTour,
+      }}
     >
       {children}
     </AuthContext.Provider>

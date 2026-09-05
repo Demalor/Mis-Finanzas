@@ -18,7 +18,7 @@ interface DataContextValue {
   loans: Loan[]
   refresh: () => Promise<void>
 
-  addMovement: (input: Omit<Movement, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>
+  addMovement: (input: Omit<Movement, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Movement>
   updateMovement: (id: string, changes: Partial<Movement>) => Promise<void>
   deleteMovement: (id: string) => Promise<void>
   deleteMovements: (ids: string[]) => Promise<void>
@@ -179,8 +179,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       refresh: loadAll,
 
       addMovement: async (input) => {
-        if (!userId) return
-        addOne(setMovements, await repo.addMovement(userId, input))
+        if (!userId) throw new Error('No hay usuario autenticado')
+        const movement = await repo.addMovement(userId, input)
+        addOne(setMovements, movement)
+        return movement
       },
       updateMovement: async (id, changes) => {
         if (!userId) return

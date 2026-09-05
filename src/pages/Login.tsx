@@ -5,6 +5,7 @@ import { useTheme } from '../context/ThemeContext'
 import { Card } from '../components/Card'
 import { Button } from '../components/Button'
 import { Field, TextInput } from '../components/FormControls'
+import { GoogleSignInSection } from '../components/GoogleSignInSection'
 
 export function Login() {
   const { signIn, error, clearError } = useAuth()
@@ -36,6 +37,7 @@ export function Login() {
         </div>
 
         <Card padding="lg">
+          <GoogleSignInSection onSuccess={() => navigate('/')} />
           <form onSubmit={handleSubmit}>
             <Field label="Correo electrónico">
               <TextInput

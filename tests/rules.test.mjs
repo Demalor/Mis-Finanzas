@@ -75,13 +75,17 @@ test('A NO puede cambiar su propio activo', async () => {
   await assertFails(updateDoc(doc(as(A), 'usuarios', A), { activo: false }))
 })
 
-test('A NO puede cambiar su nombre (solo 2 campos permitidos)', async () => {
+test('A NO puede cambiar su nombre (solo 4 campos permitidos)', async () => {
   await assertFails(updateDoc(doc(as(A), 'usuarios', A), { nombre: 'Otro' }))
 })
 
-test('A SÍ puede actualizar ultimaConexion / novedadesVistas', async () => {
+test('A SÍ puede actualizar ultimaConexion / novedadesVistas / dashboardWidgets / tourCompletado', async () => {
   await assertSucceeds(updateDoc(doc(as(A), 'usuarios', A), { ultimaConexion: 123 }))
   await assertSucceeds(updateDoc(doc(as(A), 'usuarios', A), { novedadesVistas: 3 }))
+  await assertSucceeds(
+    updateDoc(doc(as(A), 'usuarios', A), { dashboardWidgets: [{ id: 'w1', type: 'combinedTotal' }] })
+  )
+  await assertSucceeds(updateDoc(doc(as(A), 'usuarios', A), { tourCompletado: true }))
 })
 
 test('admin SÍ puede desactivar a un miembro', async () => {
