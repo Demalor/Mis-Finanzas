@@ -25,8 +25,8 @@ export function Login() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div
-            className="w-14 h-14 rounded-[var(--radius-lg)] flex items-center justify-center text-white font-bold text-[var(--fs-2xl)] mx-auto mb-3"
-            style={{ background: 'var(--color-accent)' }}
+            className="w-14 h-14 rounded-[var(--radius-lg)] flex items-center justify-center text-[var(--color-on-accent)] font-bold text-[var(--fs-2xl)] mx-auto mb-3"
+            style={{ background: 'var(--color-accent-ink)' }}
           >
             $
           </div>
@@ -76,7 +76,7 @@ export function Login() {
 
         <p className="text-center text-[var(--fs-base)] text-[var(--color-text-secondary)] mt-6">
           ¿No tienes cuenta?{' '}
-          <Link to="/registro" className="font-semibold" style={{ color: 'var(--color-accent)' }}>
+          <Link to="/registro" className="font-semibold" style={{ color: 'var(--color-accent-ink)' }}>
             Regístrate con un código de invitación
           </Link>
         </p>

@@ -108,7 +108,7 @@ export function AddMovement() {
           ) : (
             <p className="text-[var(--fs-sm)] text-[var(--color-text-secondary)] mb-5">
               No tienes cuentas creadas.{' '}
-              <Link to="/cuentas" className="font-semibold" style={{ color: 'var(--color-accent)' }}>
+              <Link to="/cuentas" className="font-semibold" style={{ color: 'var(--color-accent-ink)' }}>
                 Crea una aquí
               </Link>
               .

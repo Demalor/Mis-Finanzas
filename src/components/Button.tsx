@@ -11,7 +11,7 @@ const base =
   'inline-flex items-center justify-center gap-2 font-semibold rounded-[var(--radius-md)] transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none select-none whitespace-nowrap'
 
 const variants: Record<string, string> = {
-  primary: 'text-white shadow-sm hover:brightness-110',
+  primary: 'text-[var(--color-on-accent)] shadow-sm hover:brightness-105',
   secondary: 'bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] hover:bg-[var(--color-muted)]',
   danger: 'text-white bg-[var(--color-expense)] hover:brightness-110',
   ghost: 'text-[var(--color-text-secondary)] hover:bg-[var(--color-muted)]',

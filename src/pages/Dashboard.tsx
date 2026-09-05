@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { useData } from '../context/DataContext'
 import { useAuth } from '../firebase/AuthContext'
 import { Card } from '../components/Card'
-import { MonthSelector } from '../components/MonthSelector'
 import { MovementRow } from '../components/MovementRow'
 import { EmptyState } from '../components/EmptyState'
 import { Loading } from '../components/Loading'
@@ -21,7 +20,8 @@ export function Dashboard() {
   const { movements, categories, accounts, loans, loading } = useData()
   const { profile } = useAuth()
   const { theme, toggleTheme } = useTheme()
-  const [month, setMonth] = useState(currentMonthKey())
+  // El Inicio siempre muestra el mes actual. Para navegar entre meses, Movimientos.
+  const month = currentMonthKey()
   const preferredCurrency: Currency = profile?.monedaPreferida ?? 'COP'
   // Moneda en la que se muestra el "total estimado combinado". Arranca en la
   // preferida del perfil; si la persona elige otra en la tarjeta, esa manda.
@@ -129,28 +129,28 @@ export function Dashboard() {
 
   return (
     <div className="page">
-      <div className="flex flex-col gap-[var(--sp-4)]">
-        {/* Móvil: Inicio · (tema centrado) · Nummi a la derecha — al achicar,
-            primero se va el botón (<480px), luego el nombre (<380px).
-            Tableta en adelante: el menú lateral ya muestra "Nummi", así que aquí
-            se oculta y el botón de tema pasa a la derecha. */}
-        <div className="grid grid-cols-[1fr_auto_1fr] md:grid-cols-[1fr_auto] items-center gap-[var(--sp-3)]">
-          <div className="min-w-0">
-            <h1 className="t-h1">Inicio</h1>
-            <p className="text-[var(--color-text-secondary)] text-[var(--fs-sm)] mt-1">Tu resumen financiero del mes</p>
-          </div>
-          <button
-            onClick={toggleTheme}
-            aria-label={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-            className="hidden min-[480px]:flex w-11 h-11 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--fs-lg)] hover:bg-[var(--color-muted)] md:order-last"
-          >
-            {theme === 'dark' ? '☀️' : '🌙'}
-          </button>
-          {/* col-start-3: cuando el botón está oculto (display:none) sale del
-              flujo del grid; sin esto, "Nummi" caería a la columna del medio. */}
-          <span className="hidden min-[380px]:block md:hidden col-start-3 justify-self-end font-bold text-[var(--fs-xl)] tracking-tight">Nummi</span>
+      {/* Móvil/tablet: Inicio a la izquierda, logo Nummi a la derecha — el botón
+          de tema solo se muestra en escritorio (md+), junto al título. */}
+      <div className="grid grid-cols-[1fr_auto_1fr] md:grid-cols-[1fr_auto] items-center gap-[var(--sp-3)]">
+        <div className="min-w-0">
+          <h1 className="t-h1">Inicio</h1>
+          <p className="text-[var(--color-text-secondary)] text-[var(--fs-sm)] mt-1">Tu resumen financiero del mes</p>
         </div>
-        <MonthSelector month={month} onChange={setMonth} className="w-full md:w-fit md:self-end" />
+        <button
+          onClick={toggleTheme}
+          aria-label={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+          className="hidden md:flex w-11 h-11 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--fs-lg)] hover:bg-[var(--color-muted)] md:order-last"
+        >
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
+        {/* col-start-3: cuando el botón está oculto (display:none) sale del
+            flujo del grid; sin esto, "Nummi" caería a la columna del medio. */}
+        <img
+          src={`${import.meta.env.BASE_URL}${theme === 'dark' ? 'logo_V.png' : 'logo_N.png'}`}
+          alt="Nummi"
+          className="hidden min-[380px]:block md:hidden col-start-3 justify-self-end object-contain"
+          style={{ height: '2.25rem', width: 'auto', maxWidth: 'none' }}
+        />
       </div>
 
       {alerts.length > 0 && (
@@ -196,7 +196,7 @@ export function Dashboard() {
       {(currenciesPresent.length > 1 || currenciesPresent[0] !== displayCurrency) && (
         <Card padding="md" className="bg-[var(--color-accent-soft)] border-0">
           <div className="flex flex-wrap items-center justify-between gap-[var(--sp-3)]">
-            <div className="text-[var(--fs-xs)] font-medium" style={{ color: 'var(--color-accent)' }}>
+            <div className="text-[var(--fs-xs)] font-medium" style={{ color: 'var(--color-accent-ink)' }}>
               Total estimado combinado (referencia)
             </div>
             <div className="flex gap-1 bg-[var(--color-surface)] rounded-full p-1">
@@ -208,7 +208,7 @@ export function Dashboard() {
                   className="px-3 py-1.5 rounded-full text-[var(--fs-xs)] font-semibold transition-colors"
                   style={
                     displayCurrency === c.code
-                      ? { background: 'var(--color-accent)', color: '#FFFFFF' }
+                      ? { background: 'var(--color-accent)', color: 'var(--color-on-accent)' }
                       : { color: 'var(--color-text-secondary)' }
                   }
                 >
@@ -217,7 +217,7 @@ export function Dashboard() {
               ))}
             </div>
           </div>
-          <div className="amount text-[var(--fs-2xl)] font-bold mt-[var(--sp-2)]" style={{ color: 'var(--color-accent)' }}>
+          <div className="amount text-[var(--fs-2xl)] font-bold mt-[var(--sp-2)]" style={{ color: 'var(--color-accent-ink)' }}>
             {loadingEstimate ? 'Calculando…' : combinedEstimate !== null ? formatAmount(combinedEstimate, displayCurrency) : '—'}
           </div>
           <div className="text-[var(--fs-xs)] text-[var(--color-text-secondary)] mt-1">Usa la tasa de cambio del día — es solo un aproximado, no una suma exacta.</div>
@@ -228,7 +228,7 @@ export function Dashboard() {
       <Card>
         <div className="flex items-center justify-between gap-3 mb-[var(--sp-4)]">
           <h2 className="t-h3">Gastos por categoría ({preferredCurrency})</h2>
-          <Link to="/resumen" className="text-[var(--fs-sm)] font-semibold shrink-0" style={{ color: 'var(--color-accent)' }}>
+          <Link to="/resumen" className="text-[var(--fs-sm)] font-semibold shrink-0" style={{ color: 'var(--color-accent-ink)' }}>
             Ver todo
           </Link>
         </div>
@@ -260,7 +260,7 @@ export function Dashboard() {
       <Card>
         <div className="flex items-center justify-between gap-3 mb-[var(--sp-2)]">
           <h2 className="t-h3">Movimientos recientes</h2>
-          <Link to="/movimientos" className="text-[var(--fs-sm)] font-semibold shrink-0" style={{ color: 'var(--color-accent)' }}>
+          <Link to="/movimientos" className="text-[var(--fs-sm)] font-semibold shrink-0" style={{ color: 'var(--color-accent-ink)' }}>
             Ver todos
           </Link>
         </div>

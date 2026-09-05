@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../firebase/AuthContext'
+import { useTheme } from '../context/ThemeContext'
 import { NoveltiesModal } from './NoveltiesModal'
 import { Modal } from './Modal'
 
@@ -21,6 +22,7 @@ const MOBILE_PRIMARY = ['/', '/movimientos', '/agregar', '/resumen']
 
 export function Layout() {
   const { profile } = useAuth()
+  const { theme } = useTheme()
   const isAdmin = profile?.rol === 'admin'
   const [moreOpen, setMoreOpen] = useState(false)
 
@@ -33,14 +35,13 @@ export function Layout() {
       <NoveltiesModal />
       {/* Sidebar - escritorio */}
       <aside className="hidden md:flex flex-col w-64 shrink-0 border-r border-[var(--color-border)] bg-[var(--color-surface)] px-[var(--sp-4)] py-[var(--sp-6)]">
-        <div className="flex items-center gap-[var(--sp-2)] px-3 mb-[var(--sp-6)]">
-          <div
-            className="w-9 h-9 rounded-[var(--radius-sm)] flex items-center justify-center text-white font-bold text-[var(--fs-md)]"
-            style={{ background: 'var(--color-accent)' }}
-          >
-            $
-          </div>
-          <span className="font-bold text-[2rem] leading-none tracking-tight">Nummi</span>
+        <div className="flex items-center px-3 mb-[var(--sp-6)]">
+          <img
+            src={`${import.meta.env.BASE_URL}${theme === 'dark' ? 'isotipo_v.png' : 'isotipo_N.png'}`}
+            alt="Nummi"
+            className="object-contain"
+            style={{ height: '3.5rem', width: 'auto', maxWidth: 'none' }}
+          />
         </div>
 
         {profile && (
@@ -58,7 +59,7 @@ export function Layout() {
               end={item.end}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 min-h-[var(--tap)] rounded-[var(--radius-md)] text-[var(--fs-md)] font-medium transition-colors ${
-                  isActive ? 'text-white' : 'text-[var(--color-text)] hover:bg-[var(--color-muted)]'
+                  isActive ? 'text-[var(--color-on-accent)]' : 'text-[var(--color-text)] hover:bg-[var(--color-muted)]'
                 }`
               }
               style={({ isActive }) => (isActive ? { background: 'var(--color-accent)' } : undefined)}
@@ -92,7 +93,7 @@ export function Layout() {
             {({ isActive }) =>
               item.highlight ? (
                 <div
-                  className="w-14 h-14 -mt-6 rounded-full flex items-center justify-center text-white text-[var(--fs-2xl)] shadow-lg"
+                  className="w-14 h-14 -mt-6 rounded-full flex items-center justify-center text-[var(--color-on-accent)] text-[var(--fs-2xl)] shadow-lg"
                   style={{ background: 'var(--color-accent)' }}
                 >
                   {item.icon}
@@ -104,7 +105,7 @@ export function Layout() {
                   </span>
                   <span
                     className="text-[var(--fs-2xs)] font-semibold"
-                    style={{ color: isActive ? 'var(--color-accent)' : 'var(--color-text-secondary)' }}
+                    style={{ color: isActive ? 'var(--color-accent-ink)' : 'var(--color-text-secondary)' }}
                   >
                     {item.label}
                   </span>
@@ -124,7 +125,7 @@ export function Layout() {
           </span>
           <span
             className="text-[var(--fs-2xs)] font-semibold"
-            style={{ color: moreOpen ? 'var(--color-accent)' : 'var(--color-text-secondary)' }}
+            style={{ color: moreOpen ? 'var(--color-accent-ink)' : 'var(--color-text-secondary)' }}
           >
             Más
           </span>
@@ -142,7 +143,7 @@ export function Layout() {
               onClick={() => setMoreOpen(false)}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 min-h-[var(--tap)] rounded-[var(--radius-md)] text-[var(--fs-md)] font-medium ${
-                  isActive ? 'text-white' : 'text-[var(--color-text)] hover:bg-[var(--color-muted)]'
+                  isActive ? 'text-[var(--color-on-accent)]' : 'text-[var(--color-text)] hover:bg-[var(--color-muted)]'
                 }`
               }
               style={({ isActive }) => (isActive ? { background: 'var(--color-accent)' } : undefined)}

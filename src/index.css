@@ -2,22 +2,24 @@
 
 :root {
   color-scheme: light;
-  /* ---------- Paleta ---------- */
-  --color-bg: #F9F9FB;
+  /* ---------- Paleta — Nummi (claro, acento verde) ---------- */
+  --color-bg: #E4F5F1;
   --color-surface: #FFFFFF;
-  --color-border: #E5E5EA;
-  --color-text: #1D1D1F;
-  --color-text-secondary: #6E6E73;
-  --color-accent: #7C3AED;
-  --color-accent-soft: #F3EEFE;
-  --color-income: #1F9254;
-  --color-income-soft: #E6F7ED;
-  --color-expense: #D6432B;
-  --color-expense-soft: #FDEDEA;
-  --color-warn: #B25E00;
-  --color-warn-soft: #FFF4E5;
-  --color-muted: #F0F0F2;
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 2px 10px rgba(0, 0, 0, 0.04);
+  --color-border: #C9E6DC;
+  --color-text: #0A1F1A;
+  --color-text-secondary: #5B7A73;
+  --color-accent: #04BF78;         /* marca / rellenos (botones, chips) */
+  --color-accent-soft: #CFF0E2;
+  --color-on-accent: #04261A;      /* texto/íconos SOBRE el acento */
+  --color-accent-ink: #067A4A;     /* acento como TEXTO sobre fondo claro (enlaces) */
+  --color-income: #0A8F5C;
+  --color-income-soft: #D6F2E5;
+  --color-expense: #E23D3D;
+  --color-expense-soft: #FBE3E3;
+  --color-warn: #B0700A;
+  --color-warn-soft: #FAEED6;
+  --color-muted: #D6EDE7;
+  --shadow-card: 0 1px 2px rgba(4, 47, 38, 0.05), 0 2px 10px rgba(4, 47, 38, 0.05);
 
   /* ---------- Tipografía fluida (clamp, anclada en rem) ----------
      Escala Utopia: 360px (ratio 1.2) → 1280px (ratio 1.25).
@@ -55,21 +57,24 @@
 
 [data-theme='dark'] {
   color-scheme: dark;
-  --color-bg: #0F0F12;
-  --color-surface: #1C1C1F;
-  --color-border: #2E2E32;
-  --color-text: #F2F2F3;
-  --color-text-secondary: #9A9AA0;
-  --color-accent: #9B6EFF;
-  --color-accent-soft: #2A2340;
-  --color-income: #34D473;
-  --color-income-soft: #16321F;
-  --color-expense: #FF6B5B;
-  --color-expense-soft: #3A1E1A;
-  --color-warn: #F0A64E;
-  --color-warn-soft: #3A2A12;
-  --color-muted: #26262A;
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 10px rgba(0, 0, 0, 0.32);
+  /* ---------- Paleta — Nummi (oscuro: acento verde, fondo azul casi negro) ---------- */
+  --color-bg: #03061C;
+  --color-surface: #080C28;
+  --color-border: #1A2547;
+  --color-text: #E8EFFA;
+  --color-text-secondary: #8897BB;
+  --color-accent: #04BF78;
+  --color-accent-soft: #0A2317;
+  --color-on-accent: #04261A;      /* texto/íconos SOBRE el acento */
+  --color-accent-ink: #04BF78;     /* acento como TEXTO sobre fondo oscuro (enlaces) */
+  --color-income: #2FD98C;
+  --color-income-soft: #072A1B;
+  --color-expense: #FF6B6B;
+  --color-expense-soft: #2E1620;
+  --color-warn: #F5B44E;
+  --color-warn-soft: #2C230E;
+  --color-muted: #0B1230;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.55), 0 2px 16px rgba(0, 0, 0, 0.5);
 }
 
 * {

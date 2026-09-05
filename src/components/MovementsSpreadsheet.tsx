@@ -227,7 +227,7 @@ export function MovementsSpreadsheet() {
                     <button
                       onClick={() => navigate(`/editar/${m.id}`)}
                       className="min-h-[var(--tap)] text-[var(--fs-sm)] font-semibold"
-                      style={{ color: 'var(--color-accent)' }}
+                      style={{ color: 'var(--color-accent-ink)' }}
                     >
                       Editar
                     </button>

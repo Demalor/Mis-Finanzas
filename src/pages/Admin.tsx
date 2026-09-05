@@ -76,13 +76,13 @@ export function Admin() {
           <div className="flex flex-col gap-2 mb-4">
             {availableCodes.map((c) => (
               <div key={c.code} className="flex items-center justify-between bg-[var(--color-accent-soft)] rounded-[var(--radius-md)] px-4 py-3">
-                <span className="font-mono font-bold text-[var(--fs-lg)] tracking-widest" style={{ color: 'var(--color-accent)' }}>
+                <span className="font-mono font-bold text-[var(--fs-lg)] tracking-widest" style={{ color: 'var(--color-accent-ink)' }}>
                   {c.code}
                 </span>
                 <button
                   onClick={() => copyCode(c.code)}
                   className="text-[var(--fs-sm)] font-semibold px-3 py-1.5 rounded-full bg-[var(--color-surface)]"
-                  style={{ color: 'var(--color-accent)' }}
+                  style={{ color: 'var(--color-accent-ink)' }}
                 >
                   {copiedCode === c.code ? '✓ Copiado' : 'Copiar'}
                 </button>
@@ -120,7 +120,7 @@ export function Admin() {
                     {u.rol === 'admin' && (
                       <span
                         className="text-[var(--fs-2xs)] font-bold px-2 py-0.5 rounded-full"
-                        style={{ background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }}
+                        style={{ background: 'var(--color-accent-soft)', color: 'var(--color-accent-ink)' }}
                       >
                         ADMIN
                       </span>
