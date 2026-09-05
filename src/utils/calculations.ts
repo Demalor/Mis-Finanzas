@@ -1,4 +1,4 @@
-import type { Movement, Category, Currency } from '../types/models'
+import type { Account, Budget, Movement, Category, Currency, Transfer } from '../types/models'
 import { CURRENCIES } from '../types/models'
 import { toMonthKey } from './date'
 
@@ -34,6 +34,43 @@ export function totalsFor(movements: Movement[]) {
     else expense += m.amount
   }
   return { income, expense, balance: income - expense }
+}
+
+// Para tarjetas de crédito, el "balance" representa la deuda: gastos - pagos recibidos.
+export function accountBalance(account: Account, movements: Movement[], transfers: Transfer[]): number {
+  const gastos = movements.filter((m) => m.accountId === account.id && m.type === 'gasto').reduce((s, m) => s + m.amount, 0)
+  const ingresos = movements.filter((m) => m.accountId === account.id && m.type === 'ingreso').reduce((s, m) => s + m.amount, 0)
+  const salidas = transfers.filter((t) => t.fromAccountId === account.id).reduce((s, t) => s + t.fromAmount, 0)
+  const entradas = transfers.filter((t) => t.toAccountId === account.id).reduce((s, t) => s + t.toAmount, 0)
+
+  if (account.tipo === 'tarjeta_credito') {
+    return gastos - entradas
+  }
+  return ingresos - gastos - salidas + entradas
+}
+
+export interface BudgetStatus {
+  spent: number
+  available: number
+  pct: number
+  overBudget: boolean
+  nearLimit: boolean
+}
+
+export function budgetStatusFor(
+  budget: Budget,
+  monthMovements: Movement[],
+  accountCurrency: Map<string, Currency>,
+  currency: Currency
+): BudgetStatus {
+  const spent = monthMovements
+    .filter((m) => m.categoryId === budget.categoryId && m.type === 'gasto' && currencyOf(m, accountCurrency) === currency)
+    .reduce((s, m) => s + m.amount, 0)
+  const available = budget.amount - spent
+  const pct = budget.amount > 0 ? Math.min(100, (spent / budget.amount) * 100) : 0
+  const overBudget = spent > budget.amount
+  const nearLimit = !overBudget && pct >= 80
+  return { spent, available, pct, overBudget, nearLimit }
 }
 
 export interface CategoryBreakdownItem {

@@ -10,7 +10,7 @@ import { Segmented } from './Segmented'
 import { Field, SelectInput, AmountInput } from './FormControls'
 import { formatAmount } from '../utils/currency'
 import { currentMonthKey } from '../utils/date'
-import { movementsInMonth, currencyOf } from '../utils/calculations'
+import { movementsInMonth, budgetStatusFor } from '../utils/calculations'
 import { CURRENCIES } from '../types/models'
 import type { Currency } from '../types/models'
 
@@ -39,11 +39,6 @@ export function BudgetsTab() {
   const expenseCategories = categories.filter((c) => c.type === 'gasto')
   const monthBudgets = budgets.filter((b) => b.month === month && budgetCurrency(b) === activeCurrency)
   const monthMovements = useMemo(() => movementsInMonth(movements, month), [movements, month])
-
-  const spentByCategory = (categoryId: string) =>
-    monthMovements
-      .filter((m) => m.categoryId === categoryId && m.type === 'gasto' && currencyOf(m, accountCurrency) === activeCurrency)
-      .reduce((s, m) => s + m.amount, 0)
 
   const categoriesWithoutBudget = expenseCategories.filter((c) => !monthBudgets.some((b) => b.categoryId === c.id))
 
@@ -78,11 +73,7 @@ export function BudgetsTab() {
         <div className="card-grid">
           {monthBudgets.map((b) => {
             const category = categories.find((c) => c.id === b.categoryId)
-            const spent = spentByCategory(b.categoryId)
-            const available = b.amount - spent
-            const pct = b.amount > 0 ? Math.min(100, (spent / b.amount) * 100) : 0
-            const overBudget = spent > b.amount
-            const nearLimit = !overBudget && pct >= 80
+            const { spent, available, pct, overBudget, nearLimit } = budgetStatusFor(b, monthMovements, accountCurrency, activeCurrency)
 
             return (
               <Card key={b.id} padding="md">
