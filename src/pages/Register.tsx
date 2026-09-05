@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../firebase/AuthContext'
+import { useTheme } from '../context/ThemeContext'
 import { Card } from '../components/Card'
 import { Button } from '../components/Button'
 import { Field, TextInput } from '../components/FormControls'
 
 export function Register() {
   const { signUp, error, clearError } = useAuth()
+  const { theme } = useTheme()
   const navigate = useNavigate()
   const [nombre, setNombre] = useState('')
   const [correo, setCorreo] = useState('')
@@ -26,12 +28,12 @@ export function Register() {
     <div className="min-h-screen flex items-center justify-center px-4 py-8" style={{ background: 'var(--color-bg)' }}>
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div
-            className="w-14 h-14 rounded-[var(--radius-lg)] flex items-center justify-center text-[var(--color-on-accent)] font-bold text-[var(--fs-2xl)] mx-auto mb-3"
-            style={{ background: 'var(--color-accent-ink)' }}
-          >
-            $
-          </div>
+          <img
+            src={`${import.meta.env.BASE_URL}${theme === 'dark' ? 'isotipo_v.png' : 'isotipo_N.png'}`}
+            alt="Nummi"
+            className="block mx-auto object-contain mb-3"
+            style={{ height: '3.5rem', width: 'auto', maxWidth: 'none' }}
+          />
           <h1 className="t-h1">Crear cuenta</h1>
           <p className="text-[var(--color-text-secondary)] text-[var(--fs-base)]">Necesitas un código de invitación para crear tu cuenta</p>
         </div>
