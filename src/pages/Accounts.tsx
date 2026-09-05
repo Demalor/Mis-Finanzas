@@ -8,9 +8,10 @@ import { EmptyState } from '../components/EmptyState'
 import { PageHeader } from '../components/PageHeader'
 import { Field, TextInput, SelectInput } from '../components/FormControls'
 import { TransfersHistory } from '../components/TransfersHistory'
-import type { Account, AccountType, Currency } from '../types/models'
-import { CURRENCIES } from '../types/models'
+import { AccountFormModal } from '../components/AccountFormModal'
+import type { Account, AccountType } from '../types/models'
 import { formatAmount } from '../utils/currency'
+import { accountBalance } from '../utils/calculations'
 import { daysUntil } from '../utils/loanMath'
 import { fetchExchangeRate } from '../utils/exchangeRate'
 import { todayISO, nextMonthlyDate } from '../utils/date'
@@ -27,23 +28,6 @@ export function Accounts() {
   const [editing, setEditing] = useState<Account | null>(null)
   const [toDelete, setToDelete] = useState<Account | null>(null)
   const [exchanging, setExchanging] = useState(false)
-
-  function accountBalance(account: Account): number {
-    const gastos = movements
-      .filter((m) => m.accountId === account.id && m.type === 'gasto')
-      .reduce((s, m) => s + m.amount, 0)
-    const ingresos = movements
-      .filter((m) => m.accountId === account.id && m.type === 'ingreso')
-      .reduce((s, m) => s + m.amount, 0)
-    const salidas = transfers.filter((t) => t.fromAccountId === account.id).reduce((s, t) => s + t.fromAmount, 0)
-    const entradas = transfers.filter((t) => t.toAccountId === account.id).reduce((s, t) => s + t.toAmount, 0)
-
-    if (account.tipo === 'tarjeta_credito') {
-      // Para tarjetas, el "balance" representa la deuda: gastos - pagos recibidos
-      return gastos - entradas
-    }
-    return ingresos - gastos - salidas + entradas
-  }
 
   const regularAccounts = accounts.filter((a) => a.tipo !== 'tarjeta_credito')
   const creditCards = accounts.filter((a) => a.tipo === 'tarjeta_credito')
@@ -71,7 +55,7 @@ export function Accounts() {
               <AccountCard
                 key={a.id}
                 account={a}
-                balance={accountBalance(a)}
+                balance={accountBalance(a, movements, transfers)}
                 onEdit={() => setEditing(a)}
                 onDelete={() => setToDelete(a)}
               />
@@ -90,7 +74,7 @@ export function Accounts() {
               <CreditCardCard
                 key={a.id}
                 account={a}
-                balance={accountBalance(a)}
+                balance={accountBalance(a, movements, transfers)}
                 onEdit={() => setEditing(a)}
                 onDelete={() => setToDelete(a)}
               />
@@ -194,84 +178,6 @@ function CreditCardCard({ account, balance, onEdit, onDelete }: { account: Accou
         </p>
       )}
     </Card>
-  )
-}
-
-function AccountFormModal({
-  open,
-  account,
-  onClose,
-  onSave,
-}: {
-  open: boolean
-  account?: Account
-  onClose: () => void
-  onSave: (data: Omit<Account, 'id'>) => void
-}) {
-  const [nombre, setNombre] = useState(account?.nombre ?? '')
-  const [moneda, setMoneda] = useState<Currency>(account?.moneda ?? 'COP')
-  const [tipo, setTipo] = useState<AccountType>(account?.tipo ?? 'efectivo')
-  const [cupo, setCupo] = useState(account?.cupo ?? 0)
-  const [fechaCorte, setFechaCorte] = useState(account?.fechaCorte ?? 1)
-  const [fechaPago, setFechaPago] = useState(account?.fechaPago ?? 15)
-  const [diasAviso, setDiasAviso] = useState(account?.diasAvisoPago ?? 5)
-
-  return (
-    <Modal open={open} onClose={onClose} title={account ? 'Editar cuenta' : 'Nueva cuenta'}>
-      <Field label="Nombre">
-        <TextInput value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Efectivo EUR, Cuenta Nequi" autoFocus />
-      </Field>
-      <Field label="Moneda">
-        <SelectInput value={moneda} onChange={(e) => setMoneda(e.target.value as Currency)}>
-          {CURRENCIES.map((c) => (
-            <option key={c.code} value={c.code}>{c.code} — {c.label}</option>
-          ))}
-        </SelectInput>
-      </Field>
-      <Field label="Tipo de cuenta">
-        <SelectInput value={tipo} onChange={(e) => setTipo(e.target.value as AccountType)}>
-          <option value="efectivo">💵 Efectivo</option>
-          <option value="banco">🏦 Cuenta bancaria</option>
-          <option value="tarjeta_credito">💳 Tarjeta de crédito</option>
-        </SelectInput>
-      </Field>
-
-      {tipo === 'tarjeta_credito' && (
-        <>
-          <Field label="Cupo (límite de crédito)">
-            <TextInput type="number" min={0} value={cupo} onChange={(e) => setCupo(Number(e.target.value))} />
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Día de corte">
-              <TextInput type="number" min={1} max={31} value={fechaCorte} onChange={(e) => setFechaCorte(Number(e.target.value))} />
-            </Field>
-            <Field label="Día de pago">
-              <TextInput type="number" min={1} max={31} value={fechaPago} onChange={(e) => setFechaPago(Number(e.target.value))} />
-            </Field>
-          </div>
-          <Field label="Avisar con cuántos días de anticipación" hint="Antes de la fecha de pago">
-            <TextInput type="number" min={0} max={30} value={diasAviso} onChange={(e) => setDiasAviso(Number(e.target.value))} />
-          </Field>
-        </>
-      )}
-
-      <Button
-        className="w-full"
-        size="lg"
-        disabled={!nombre.trim()}
-        onClick={() =>
-          onSave({
-            nombre: nombre.trim(),
-            moneda,
-            tipo,
-            activa: true,
-            ...(tipo === 'tarjeta_credito' ? { cupo, fechaCorte, fechaPago, diasAvisoPago: diasAviso } : {}),
-          })
-        }
-      >
-        Guardar cuenta
-      </Button>
-    </Modal>
   )
 }
 

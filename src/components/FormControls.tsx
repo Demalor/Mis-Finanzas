@@ -2,8 +2,10 @@ import type { InputHTMLAttributes, SelectHTMLAttributes, ReactNode } from 'react
 import type { MovementType } from '../types/models'
 import { formatNumberInput, parseNumberInput } from '../utils/currency'
 
+// text-[1rem] (16px) fijo, no el fluido --fs-md: por debajo de 16px, iOS Safari
+// hace zoom automático al enfocar el campo — con 16px nunca se dispara.
 const controlBase =
-  'w-full min-h-[var(--tap)] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-[var(--sp-4)] py-[var(--sp-3)] text-[var(--fs-md)] outline-none focus:border-[var(--color-accent)] transition-colors'
+  'w-full min-h-[var(--tap)] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-[var(--sp-4)] py-[var(--sp-3)] text-[1rem] outline-none focus:border-[var(--color-accent)] transition-colors'
 
 export function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
   return (
