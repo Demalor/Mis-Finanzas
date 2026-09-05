@@ -3,7 +3,9 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  base: '/Mis-Finanzas/',
+  // GitHub Pages sirve la app desde un subpath; Firebase Hosting desde la raíz.
+  // El script deploy:firebase pasa VITE_BASE_PATH=/ para ese build.
+  base: process.env.VITE_BASE_PATH ?? '/Mis-Finanzas/',
   plugins: [react(), tailwindcss()],
   build: {
     rollupOptions: {

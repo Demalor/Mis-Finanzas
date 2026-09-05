@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "deploy": "npm run build && gh-pages -d dist",
+    "deploy:firebase": "VITE_BASE_PATH=/ vite build && npx --yes firebase-tools@^14 deploy --only hosting",
     "emulators": "npx --yes firebase-tools@^14 emulators:start --only auth,firestore",
     "test:rules": "npx --yes firebase-tools@^14 emulators:exec --only firestore --project=demo-misfinanzas \"node --test tests/rules.test.mjs\""
   },

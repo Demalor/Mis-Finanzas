@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "mis-finanzas-32a6e"
-  }
+  },
+  "targets": {
+    "mis-finanzas-32a6e": {
+      "hosting": {
+        "nummi": [
+          "nummi-nummi"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }
