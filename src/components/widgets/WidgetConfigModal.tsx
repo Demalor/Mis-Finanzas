@@ -26,6 +26,7 @@ export function WidgetConfigModal({
   onSave: (config: DashboardWidgetConfig) => void
 }) {
   const { accounts, categories, incomeSources } = useData()
+  const savingsAccounts = accounts.filter((a) => a.tipo !== 'tarjeta_credito')
   const expenseCategories = categories.filter((c) => c.type === 'gasto')
   const incomeCategories = categories.filter((c) => c.type === 'ingreso')
 
@@ -53,6 +54,9 @@ export function WidgetConfigModal({
   const [sbName, setSbName] = useState('')
   const [sbCurrency, setSbCurrency] = useState<Currency>('COP')
   const [sbTarget, setSbTarget] = useState(0)
+  const [sbAccountId, setSbAccountId] = useState('')
+  const sbAccount = accounts.find((a) => a.id === sbAccountId)
+  const sbEffectiveCurrency = sbAccount?.moneda ?? sbCurrency
 
   function handleSave() {
     const id = crypto.randomUUID()
@@ -81,7 +85,11 @@ export function WidgetConfigModal({
       })
     } else if (type === 'savingsBox') {
       if (!sbName.trim() || sbTarget <= 0) return
-      onSave({ id, type, box: { name: sbName.trim(), currency: sbCurrency, target: sbTarget, current: 0 } })
+      onSave({
+        id,
+        type,
+        box: { name: sbName.trim(), currency: sbEffectiveCurrency, target: sbTarget, current: 0, accountId: sbAccountId || undefined },
+      })
     }
   }
 
@@ -160,7 +168,7 @@ export function WidgetConfigModal({
             <TextInput value={qpDescription} onChange={(e) => setQpDescription(e.target.value)} placeholder="Ej: Parqueadero U" />
           </Field>
           <Field label="Valor">
-            <AmountInput value={qpAmount} onChange={setQpAmount} />
+            <AmountInput value={qpAmount} onChange={setQpAmount} currency={accounts.find((a) => a.id === qpAccountId)?.moneda ?? 'COP'} />
           </Field>
           <Field label="Tipo">
             <TypeToggle
@@ -214,20 +222,34 @@ export function WidgetConfigModal({
 
       {type === 'savingsBox' && (
         <>
-          <Field label="Nombre de la caja" hint="Es independiente de tus cuentas — no genera movimientos.">
+          <Field label="Nombre de la caja" hint={sbAccountId ? 'Lo que apartes saldrá del disponible de esa cuenta.' : 'Es independiente de tus cuentas — no genera movimientos.'}>
             <TextInput value={sbName} onChange={(e) => setSbName(e.target.value)} placeholder="Ej: Viaje a Cartagena" />
           </Field>
-          <Field label="Moneda">
-            <SelectInput value={sbCurrency} onChange={(e) => setSbCurrency(e.target.value as Currency)}>
-              {CURRENCIES.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.label} ({c.code})
-                </option>
-              ))}
-            </SelectInput>
-          </Field>
+          {savingsAccounts.length > 0 && (
+            <Field label="Cuenta (opcional)" hint="Si eliges una, la caja usa su moneda y descuenta lo apartado de su disponible.">
+              <SelectInput value={sbAccountId} onChange={(e) => setSbAccountId(e.target.value)}>
+                <option value="">Ninguna — caja independiente</option>
+                {savingsAccounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.nombre} ({a.moneda})
+                  </option>
+                ))}
+              </SelectInput>
+            </Field>
+          )}
+          {!sbAccountId && (
+            <Field label="Moneda">
+              <SelectInput value={sbCurrency} onChange={(e) => setSbCurrency(e.target.value as Currency)}>
+                {CURRENCIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.label} ({c.code})
+                  </option>
+                ))}
+              </SelectInput>
+            </Field>
+          )}
           <Field label="Meta">
-            <AmountInput value={sbTarget} onChange={setSbTarget} />
+            <AmountInput value={sbTarget} onChange={setSbTarget} currency={sbEffectiveCurrency} />
           </Field>
         </>
       )}

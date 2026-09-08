@@ -8,18 +8,35 @@ const formattersByCurrency: Record<string, Intl.NumberFormat> = {
 
 export function formatAmount(value: number, currency: string): string {
   const formatter = formattersByCurrency[currency] ?? formattersByCurrency.COP
-  return formatter.format(Math.round(value))
+  return formatter.format(value)
+}
+
+// El peso colombiano no usa centavos en la práctica; las demás sí.
+export function currencyDecimals(currency: string): number {
+  return currency === 'COP' ? 0 : 2
 }
 
 // Para inputs: solo separa miles, sin símbolo de moneda
-const plainNumberFormatter = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 })
-
-export function formatNumberInput(value: number): string {
+export function formatAmountInput(value: number, decimals: number): string {
   if (!value || Number.isNaN(value)) return ''
-  return plainNumberFormatter.format(value)
+  return new Intl.NumberFormat('es-CO', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(value)
 }
 
-export function parseNumberInput(text: string): number {
-  const clean = text.replace(/[^\d]/g, '')
-  return clean ? parseInt(clean, 10) : 0
+// Se aceptan las dos convenciones (157,06 y 157.06) porque la moneda no dice
+// cómo teclea la persona: el último separador seguido de 1-2 dígitos es el
+// decimal, cualquier otro es separador de miles y se descarta.
+export function parseAmountInput(text: string, decimals: number): number {
+  let intPart = text
+  let fracPart = ''
+  if (decimals > 0) {
+    const match = text.match(/[.,](\d{1,2})$/)
+    if (match) {
+      fracPart = match[1]
+      intPart = text.slice(0, -match[0].length)
+    }
+  }
+  const digits = intPart.replace(/\D/g, '')
+  const units = digits ? parseInt(digits, 10) : 0
+  if (!fracPart) return units
+  return units + parseInt(fracPart.padEnd(decimals, '0'), 10) / 10 ** decimals
 }

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useData } from '../context/DataContext'
+import { useAuth } from '../firebase/AuthContext'
 import { Card } from '../components/Card'
 import { Button } from '../components/Button'
 import { Modal } from '../components/Modal'
@@ -11,7 +12,7 @@ import { TransfersHistory } from '../components/TransfersHistory'
 import { AccountFormModal } from '../components/AccountFormModal'
 import type { Account, AccountType } from '../types/models'
 import { formatAmount } from '../utils/currency'
-import { accountBalance } from '../utils/calculations'
+import { accountBalance, reservedForAccount } from '../utils/calculations'
 import { daysUntil } from '../utils/loanMath'
 import { fetchExchangeRate } from '../utils/exchangeRate'
 import { todayISO, nextMonthlyDate } from '../utils/date'
@@ -24,6 +25,8 @@ const TYPE_LABELS: Record<AccountType, { label: string; icon: string }> = {
 
 export function Accounts() {
   const { accounts, movements, transfers, addAccount, updateAccount, deleteAccount } = useData()
+  const { profile } = useAuth()
+  const widgets = profile?.dashboardWidgets ?? []
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<Account | null>(null)
   const [toDelete, setToDelete] = useState<Account | null>(null)
@@ -56,6 +59,7 @@ export function Accounts() {
                 key={a.id}
                 account={a}
                 balance={accountBalance(a, movements, transfers)}
+                reserved={reservedForAccount(widgets, a.id)}
                 onEdit={() => setEditing(a)}
                 onDelete={() => setToDelete(a)}
               />
@@ -112,7 +116,20 @@ export function Accounts() {
   )
 }
 
-function AccountCard({ account, balance, onEdit, onDelete }: { account: Account; balance: number; onEdit: () => void; onDelete: () => void }) {
+function AccountCard({
+  account,
+  balance,
+  reserved,
+  onEdit,
+  onDelete,
+}: {
+  account: Account
+  balance: number
+  reserved: number
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  const available = balance - reserved
   return (
     <Card padding="md" className="flex items-center gap-3">
       <div className="w-12 h-12 rounded-full flex items-center justify-center text-[var(--fs-xl)] shrink-0 bg-[var(--color-muted)]">
@@ -121,7 +138,10 @@ function AccountCard({ account, balance, onEdit, onDelete }: { account: Account;
       <div className="flex-1 min-w-0">
         <div className="font-semibold text-[var(--fs-md)] truncate">{account.nombre}</div>
         <div className="text-[var(--fs-xs)] text-[var(--color-text-secondary)]">{TYPE_LABELS[account.tipo].label} · {account.moneda}</div>
-        <div className="text-[var(--fs-md)] font-bold mt-1">{formatAmount(balance, account.moneda)}</div>
+        <div className="text-[var(--fs-md)] font-bold mt-1">{formatAmount(available, account.moneda)}</div>
+        {reserved > 0 && (
+          <div className="text-[var(--fs-xs)] text-[var(--color-text-secondary)]">Apartado: {formatAmount(reserved, account.moneda)}</div>
+        )}
       </div>
       <button onClick={onEdit} aria-label="Editar cuenta" className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-[var(--color-muted)] text-[var(--fs-md)]">✏️</button>
       <button onClick={onDelete} aria-label="Eliminar cuenta" className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-[var(--color-expense-soft)] text-[var(--fs-md)]" style={{ color: 'var(--color-expense)' }}>🗑️</button>

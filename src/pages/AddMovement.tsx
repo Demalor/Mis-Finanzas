@@ -81,20 +81,6 @@ export function AddMovement() {
             <TypeToggle value={type} onChange={setType} />
           </Field>
 
-          <Field label="Valor">
-            <AmountInput value={amount} onChange={setAmount} />
-          </Field>
-
-          <Field label="Categoría">
-            <SelectInput value={effectiveCategoryId} onChange={(e) => setCategoryId(e.target.value)}>
-              {filteredCategories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.icon} {c.name}
-                </option>
-              ))}
-            </SelectInput>
-          </Field>
-
           {usableAccounts.length > 0 ? (
             <Field label="Cuenta">
               <SelectInput value={effectiveAccountId} onChange={(e) => setAccountId(e.target.value)}>
@@ -114,6 +100,20 @@ export function AddMovement() {
               .
             </p>
           )}
+
+          <Field label="Valor">
+            <AmountInput value={amount} onChange={setAmount} currency={accounts.find((a) => a.id === effectiveAccountId)?.moneda ?? 'COP'} />
+          </Field>
+
+          <Field label="Categoría">
+            <SelectInput value={effectiveCategoryId} onChange={(e) => setCategoryId(e.target.value)}>
+              {filteredCategories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.icon} {c.name}
+                </option>
+              ))}
+            </SelectInput>
+          </Field>
 
           {type === 'ingreso' && (
             <Field label="Fuente del ingreso (opcional)">

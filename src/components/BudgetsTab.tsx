@@ -183,7 +183,7 @@ function NewBudgetModal({
             </SelectInput>
           </Field>
           <Field label="Presupuesto mensual">
-            <AmountInput value={amount} onChange={setAmount} />
+            <AmountInput value={amount} onChange={setAmount} currency={currency} />
           </Field>
           <Button
             className="w-full"

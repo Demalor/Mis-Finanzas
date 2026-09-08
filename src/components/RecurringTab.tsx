@@ -7,15 +7,17 @@ import { ConfirmDialog } from './ConfirmDialog'
 import { EmptyState } from './EmptyState'
 import { Field, SelectInput, TypeToggle, AmountInput, TextInput } from './FormControls'
 import type { MovementType, RecurringFrequency, RecurringMovement } from '../types/models'
-import { FREQUENCY_LABELS } from '../utils/recurring'
+import { FREQUENCY_LABELS, nextPendingDate } from '../utils/recurring'
 import { formatAmount } from '../utils/currency'
 import { todayISO, formatDateReadable } from '../utils/date'
+import { daysUntil } from '../utils/loanMath'
 
 export function RecurringTab() {
-  const { recurring, categories, accounts, addRecurring, updateRecurring, deleteRecurring } = useData()
+  const { recurring, categories, accounts, addRecurring, updateRecurring, deleteRecurring, confirmRecurringPayment } = useData()
   const accountCurrency = new Map(accounts.map((a) => [a.id, a.moneda]))
   const [creating, setCreating] = useState(false)
   const [toDelete, setToDelete] = useState<RecurringMovement | null>(null)
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
 
   return (
     <div className="flex flex-col gap-[var(--sp-5)]">
@@ -35,6 +37,9 @@ export function RecurringTab() {
         <div className="flex flex-col gap-3">
           {recurring.map((r) => {
             const category = categories.find((c) => c.id === r.categoryId)
+            const pendingDate = r.active ? nextPendingDate(r) : null
+            const pendingDays = pendingDate ? daysUntil(pendingDate) : null
+            const isDue = pendingDays !== null && pendingDays <= (r.diasAvisoPago ?? 3)
             return (
               <Card key={r.id} padding="md">
                 <div className="flex items-center gap-4">
@@ -59,6 +64,31 @@ export function RecurringTab() {
                     {formatAmount(r.amount, (r.accountId && accountCurrency.get(r.accountId)) || 'COP')}
                   </div>
                 </div>
+                {isDue && (
+                  <div
+                    className="flex items-center justify-between gap-2 mt-3 px-3 py-2 rounded-[var(--radius-md)] text-[var(--fs-xs)] font-medium"
+                    style={{
+                      background: pendingDays! < 0 ? 'var(--color-expense-soft)' : 'var(--color-warn-soft)',
+                      color: pendingDays! < 0 ? 'var(--color-expense)' : 'var(--color-warn)',
+                    }}
+                  >
+                    <span>
+                      {pendingDays! < 0 ? '⚠️ Vencido' : pendingDays === 0 ? '⏰ Vence hoy' : `⏰ Vence en ${pendingDays} día(s)`}
+                    </span>
+                    <button
+                      onClick={async () => {
+                        setConfirmingId(r.id)
+                        await confirmRecurringPayment(r.id)
+                        setConfirmingId(null)
+                      }}
+                      disabled={confirmingId === r.id}
+                      className="shrink-0 px-3 py-1.5 rounded-full font-semibold disabled:opacity-50"
+                      style={{ background: 'var(--color-surface)', color: 'inherit' }}
+                    >
+                      {confirmingId === r.id ? 'Confirmando…' : 'Confirmar pago'}
+                    </button>
+                  </div>
+                )}
                 <div className="flex items-center justify-end gap-2 mt-3">
                   <button
                     onClick={() => updateRecurring(r.id, { active: !r.active })}
@@ -118,6 +148,7 @@ function NewRecurringModal({
   const [sourceId, setSourceId] = useState('')
   const [frequency, setFrequency] = useState<RecurringFrequency>('mensual')
   const [startDate, setStartDate] = useState(todayISO())
+  const [diasAviso, setDiasAviso] = useState(3)
 
   const filteredCategories = categories.filter((c) => c.type === type)
   const effectiveCategoryId = categoryId && filteredCategories.some((c) => c.id === categoryId) ? categoryId : filteredCategories[0]?.id ?? ''
@@ -132,18 +163,6 @@ function NewRecurringModal({
       <Field label="Tipo">
         <TypeToggle value={type} onChange={setType} />
       </Field>
-      <Field label="Valor">
-        <AmountInput value={amount} onChange={setAmount} />
-      </Field>
-      <Field label="Categoría">
-        <SelectInput value={effectiveCategoryId} onChange={(e) => setCategoryId(e.target.value)}>
-          {filteredCategories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.icon} {c.name}
-            </option>
-          ))}
-        </SelectInput>
-      </Field>
       {usableAccounts.length > 0 && (
         <Field label="Cuenta">
           <SelectInput value={effectiveAccountId} onChange={(e) => setAccountId(e.target.value)}>
@@ -155,6 +174,18 @@ function NewRecurringModal({
           </SelectInput>
         </Field>
       )}
+      <Field label="Valor">
+        <AmountInput value={amount} onChange={setAmount} currency={accounts.find((a) => a.id === effectiveAccountId)?.moneda ?? 'COP'} />
+      </Field>
+      <Field label="Categoría">
+        <SelectInput value={effectiveCategoryId} onChange={(e) => setCategoryId(e.target.value)}>
+          {filteredCategories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.icon} {c.name}
+            </option>
+          ))}
+        </SelectInput>
+      </Field>
       {type === 'ingreso' && incomeSources.length > 0 && (
         <Field label="Fuente del ingreso (opcional)">
           <SelectInput value={sourceId} onChange={(e) => setSourceId(e.target.value)}>
@@ -179,6 +210,9 @@ function NewRecurringModal({
       <Field label="Fecha de inicio">
         <TextInput type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
       </Field>
+      <Field label="Avisar con cuántos días de anticipación">
+        <TextInput type="number" min={0} max={30} value={diasAviso} onChange={(e) => setDiasAviso(Number(e.target.value))} />
+      </Field>
       <Button
         className="w-full"
         size="lg"
@@ -194,6 +228,7 @@ function NewRecurringModal({
             active: true,
             accountId: effectiveAccountId || undefined,
             sourceId: type === 'ingreso' && sourceId ? sourceId : undefined,
+            diasAvisoPago: diasAviso,
           })
           setDescription('')
           setAmount(0)

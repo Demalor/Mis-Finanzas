@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useData } from '../context/DataContext'
 import { useAuth } from '../firebase/AuthContext'
@@ -12,11 +12,21 @@ import { formatAmount } from '../utils/currency'
 import { currentMonthKey, nextMonthlyDate } from '../utils/date'
 import { movementsInMonth, categoryBreakdown } from '../utils/calculations'
 import { summarizeLoan, daysUntil } from '../utils/loanMath'
+import { nextPendingDate } from '../utils/recurring'
 import { useTheme } from '../context/ThemeContext'
 import type { Currency } from '../types/models'
 
+interface DashboardAlert {
+  id: string
+  label: string
+  days: number
+  amount: string
+  href?: string
+  onConfirm?: () => Promise<void>
+}
+
 export function Dashboard() {
-  const { movements, categories, accounts, loans, loading } = useData()
+  const { movements, categories, accounts, loans, recurring, confirmRecurringPayment, loading } = useData()
   const { profile } = useAuth()
   const { theme, toggleTheme } = useTheme()
   // El Inicio siempre muestra el mes actual. Para navegar entre meses, Movimientos.
@@ -36,9 +46,11 @@ export function Dashboard() {
     [movements]
   )
 
-  // Alertas de pago próximo (tarjetas + préstamos)
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
+
+  // Alertas de pago próximo (tarjetas + préstamos + recurrentes sin confirmar)
   const alerts = useMemo(() => {
-    const list: { id: string; label: string; days: number; amount: string; href: string }[] = []
+    const list: DashboardAlert[] = []
     for (const acc of accounts.filter((a) => a.tipo === 'tarjeta_credito' && a.fechaPago)) {
       const days = daysUntil(nextMonthlyDate(acc.fechaPago!))
       if (days <= (acc.diasAvisoPago ?? 5)) {
@@ -59,8 +71,22 @@ export function Dashboard() {
         })
       }
     }
+    for (const r of recurring.filter((x) => x.active)) {
+      const date = nextPendingDate(r)
+      if (!date) continue
+      const days = daysUntil(date)
+      if (days <= (r.diasAvisoPago ?? 3)) {
+        list.push({
+          id: r.id,
+          label: r.description,
+          days,
+          amount: formatAmount(r.amount, (r.accountId && accountCurrency.get(r.accountId)) || 'COP'),
+          onConfirm: () => confirmRecurringPayment(r.id),
+        })
+      }
+    }
     return list.sort((a, b) => a.days - b.days)
-  }, [accounts, loans])
+  }, [accounts, loans, recurring, confirmRecurringPayment, accountCurrency])
 
   if (loading)
     return <Loading />
@@ -93,22 +119,49 @@ export function Dashboard() {
 
       {alerts.length > 0 && (
         <div className="flex flex-col gap-[var(--sp-2)]">
-          {alerts.map((a) => (
-            <Link
-              key={a.id}
-              to={a.href}
-              className="flex items-center justify-between gap-2 px-[var(--sp-4)] py-[var(--sp-3)] min-h-[var(--tap)] rounded-[var(--radius-md)] font-medium text-[var(--fs-sm)]"
-              style={{
-                background: a.days < 0 ? 'var(--color-expense-soft)' : 'var(--color-warn-soft)',
-                color: a.days < 0 ? 'var(--color-expense)' : 'var(--color-warn)',
-              }}
-            >
-              <span>
-                {a.days < 0 ? '⚠️' : '⏰'} {a.label} {a.days < 0 ? 'vencida' : `vence en ${a.days} día(s)`} {a.amount && `· ${a.amount}`}
-              </span>
-              <span>›</span>
-            </Link>
-          ))}
+          {alerts.map((a) =>
+            a.onConfirm ? (
+              <div
+                key={a.id}
+                className="flex items-center justify-between gap-2 px-[var(--sp-4)] py-[var(--sp-3)] min-h-[var(--tap)] rounded-[var(--radius-md)] font-medium text-[var(--fs-sm)]"
+                style={{
+                  background: a.days < 0 ? 'var(--color-expense-soft)' : 'var(--color-warn-soft)',
+                  color: a.days < 0 ? 'var(--color-expense)' : 'var(--color-warn)',
+                }}
+              >
+                <span>
+                  🔁 {a.label} {a.days < 0 ? 'vencido' : a.days === 0 ? 'vence hoy' : `vence en ${a.days} día(s)`} {a.amount && `· ${a.amount}`}
+                </span>
+                <button
+                  onClick={async () => {
+                    setConfirmingId(a.id)
+                    await a.onConfirm!()
+                    setConfirmingId(null)
+                  }}
+                  disabled={confirmingId === a.id}
+                  className="shrink-0 px-3 py-1.5 rounded-full text-[var(--fs-xs)] font-semibold disabled:opacity-50"
+                  style={{ background: 'var(--color-surface)', color: 'inherit' }}
+                >
+                  {confirmingId === a.id ? 'Confirmando…' : 'Confirmar pago'}
+                </button>
+              </div>
+            ) : (
+              <Link
+                key={a.id}
+                to={a.href!}
+                className="flex items-center justify-between gap-2 px-[var(--sp-4)] py-[var(--sp-3)] min-h-[var(--tap)] rounded-[var(--radius-md)] font-medium text-[var(--fs-sm)]"
+                style={{
+                  background: a.days < 0 ? 'var(--color-expense-soft)' : 'var(--color-warn-soft)',
+                  color: a.days < 0 ? 'var(--color-expense)' : 'var(--color-warn)',
+                }}
+              >
+                <span>
+                  {a.days < 0 ? '⚠️' : '⏰'} {a.label} {a.days < 0 ? 'vencida' : `vence en ${a.days} día(s)`} {a.amount && `· ${a.amount}`}
+                </span>
+                <span>›</span>
+              </Link>
+            )
+          )}
         </div>
       )}
 

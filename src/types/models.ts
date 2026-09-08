@@ -111,6 +111,7 @@ export interface RecurringMovement {
   active: boolean
   accountId?: string // cuenta a la que se cargan los movimientos generados
   sourceId?: string // fuente del ingreso (solo si type === 'ingreso')
+  diasAvisoPago?: number // días de anticipación para el aviso, default 3
 }
 
 export interface Budget {
@@ -166,6 +167,7 @@ export interface SavingsBoxConfig {
   currency: Currency
   target: number
   current: number
+  accountId?: string // si está asociada a una cuenta real, el monto sale del disponible de esa cuenta
 }
 
 export type DashboardWidgetConfig =

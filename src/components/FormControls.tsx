@@ -1,6 +1,6 @@
-import type { InputHTMLAttributes, SelectHTMLAttributes, ReactNode } from 'react'
-import type { MovementType } from '../types/models'
-import { formatNumberInput, parseNumberInput } from '../utils/currency'
+import { useEffect, useState, type InputHTMLAttributes, type SelectHTMLAttributes, type ReactNode } from 'react'
+import { CURRENCIES, type Currency, type MovementType } from '../types/models'
+import { currencyDecimals, formatAmountInput, parseAmountInput } from '../utils/currency'
 
 // text-[1rem] (16px) fijo, no el fluido --fs-md: por debajo de 16px, iOS Safari
 // hace zoom automático al enfocar el campo — con 16px nunca se dispara.
@@ -54,20 +54,39 @@ export function TypeToggle({ value, onChange }: { value: MovementType; onChange:
   )
 }
 
-export function AmountInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  const display = formatNumberInput(value)
+export function AmountInput({ value, onChange, currency = 'COP' }: { value: number; onChange: (v: number) => void; currency?: Currency }) {
+  const decimals = currencyDecimals(currency)
+  const symbol = CURRENCIES.find((c) => c.code === currency)?.symbol ?? '$'
+  const [text, setText] = useState(() => formatAmountInput(value, decimals))
+  const [focused, setFocused] = useState(false)
+
+  // Mientras se escribe se conserva el texto tal cual (para no perder el
+  // separador decimal en cada tecla); solo se reformatea al perder el foco
+  // o cuando el valor cambia desde afuera (ej. al limpiar el formulario).
+  useEffect(() => {
+    if (!focused) setText(formatAmountInput(value, decimals))
+  }, [value, decimals, focused])
+
   return (
-    <div className="relative">
-      <span className="absolute left-[var(--sp-4)] top-1/2 -translate-y-1/2 text-[var(--fs-xl)] font-semibold text-[var(--color-text-secondary)]">
-        $
+    <div className="flex items-stretch rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] focus-within:border-[var(--color-accent)] transition-colors">
+      <span className="flex items-center pl-[var(--sp-4)] pr-1 text-[var(--fs-xl)] font-semibold text-[var(--color-text-secondary)] shrink-0">
+        {symbol}
       </span>
       <input
-        inputMode="numeric"
-        value={display}
-        onChange={(e) => onChange(parseNumberInput(e.target.value))}
+        inputMode={decimals > 0 ? 'decimal' : 'numeric'}
+        value={text}
+        onFocus={() => setFocused(true)}
+        onChange={(e) => {
+          setText(e.target.value)
+          onChange(parseAmountInput(e.target.value, decimals))
+        }}
+        onBlur={() => {
+          setFocused(false)
+          setText(formatAmountInput(value, decimals))
+        }}
         placeholder="0"
         aria-label="Valor"
-        className="amount w-full min-h-[var(--tap)] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] pl-10 pr-[var(--sp-4)] py-[var(--sp-4)] text-[var(--fs-3xl)] font-bold outline-none focus:border-[var(--color-accent)] transition-colors"
+        className="amount w-full min-w-0 min-h-[var(--tap)] bg-transparent pr-[var(--sp-4)] py-[var(--sp-4)] text-[var(--fs-3xl)] font-bold outline-none"
       />
     </div>
   )

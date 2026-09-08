@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../firebase/AuthContext'
+import { useData } from '../context/DataContext'
 import { WidgetShell } from './widgets/WidgetShell'
 import { AccountBalanceWidget } from './widgets/AccountBalanceWidget'
 import { BudgetStatusWidget } from './widgets/BudgetStatusWidget'
@@ -10,8 +11,9 @@ import { QuickPayWidget } from './widgets/QuickPayWidget'
 import { SavingsBoxWidget } from './widgets/SavingsBoxWidget'
 import { WidgetPickerModal } from './widgets/WidgetPickerModal'
 import { WidgetConfigModal } from './widgets/WidgetConfigModal'
+import { ConfirmDialog } from './ConfirmDialog'
 import { formatAmount } from '../utils/currency'
-import { totalsFor, currencyOf } from '../utils/calculations'
+import { totalsFor, currencyOf, accountBalance, reservedForAccount } from '../utils/calculations'
 import type { Currency, DashboardWidgetConfig, DashboardWidgetType, Movement } from '../types/models'
 
 const MAX_WIDGETS = 4
@@ -28,9 +30,11 @@ export function WidgetsPanel({
   accountCurrency: Map<string, Currency>
 }) {
   const { profile, updateDashboardWidgets } = useAuth()
+  const { accounts, movements, transfers } = useData()
   const widgets = profile?.dashboardWidgets ?? []
   const [pickerSlot, setPickerSlot] = useState<number | null>(null)
   const [configuring, setConfiguring] = useState<{ slot: number; type: DashboardWidgetType } | null>(null)
+  const [removingSlot, setRemovingSlot] = useState<number | null>(null)
 
   async function saveAt(slot: number, config: DashboardWidgetConfig) {
     const next = [...widgets]
@@ -42,6 +46,18 @@ export function WidgetsPanel({
 
   async function removeAt(slot: number) {
     await updateDashboardWidgets(widgets.filter((_, i) => i !== slot))
+    setRemovingSlot(null)
+  }
+
+  // Una caja de ahorro asociada a una cuenta representa plata real apartada:
+  // quitarla no debe borrar esa reserva sin confirmar primero.
+  function requestRemove(slot: number) {
+    const config = widgets[slot]
+    if (config.type === 'savingsBox' && config.box.accountId && config.box.current > 0) {
+      setRemovingSlot(slot)
+    } else {
+      removeAt(slot)
+    }
   }
 
   function handlePick(type: DashboardWidgetType) {
@@ -72,7 +88,7 @@ export function WidgetsPanel({
           return (
             <div key={config.id} className="relative">
               <button
-                onClick={() => removeAt(slot)}
+                onClick={() => requestRemove(slot)}
                 aria-label="Quitar widget"
                 className="absolute top-1.5 right-1.5 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-[var(--color-muted)] hover:bg-[var(--color-expense-soft)] text-[var(--fs-2xs)]"
               >
@@ -84,14 +100,25 @@ export function WidgetsPanel({
               {config.type === 'currencyBreakdown' && <CurrencyBreakdownWidget />}
               {config.type === 'combinedTotal' && <CombinedTotalWidget />}
               {config.type === 'quickPay' && <QuickPayWidget config={config} />}
-              {config.type === 'savingsBox' && (
-                <SavingsBoxWidget
-                  box={config.box}
-                  onContribute={(delta) =>
-                    saveAt(slot, { ...config, box: { ...config.box, current: Math.max(0, config.box.current + delta) } })
-                  }
-                />
-              )}
+              {config.type === 'savingsBox' &&
+                (() => {
+                  const linkedAccount = config.box.accountId ? accounts.find((a) => a.id === config.box.accountId) : undefined
+                  // reservedForAccount ya cuenta lo que esta misma caja tiene
+                  // reservado, así que lo disponible es justo lo no reservado.
+                  const accountAvailable = linkedAccount
+                    ? accountBalance(linkedAccount, movements, transfers) - reservedForAccount(widgets, linkedAccount.id)
+                    : undefined
+                  return (
+                    <SavingsBoxWidget
+                      box={config.box}
+                      accountName={linkedAccount?.nombre}
+                      accountAvailable={accountAvailable}
+                      onContribute={(delta) =>
+                        saveAt(slot, { ...config, box: { ...config.box, current: Math.max(0, config.box.current + delta) } })
+                      }
+                    />
+                  )
+                })()}
             </div>
           )
         })}
@@ -114,6 +141,15 @@ export function WidgetsPanel({
           onSave={(config) => saveAt(configuring.slot, config)}
         />
       )}
+
+      <ConfirmDialog
+        open={removingSlot !== null}
+        title="Quitar caja de ahorro"
+        message="Esta caja tiene plata apartada de una cuenta. Al quitarla, ese monto deja de estar reservado y vuelve a quedar disponible en la cuenta."
+        confirmLabel="Quitar"
+        onCancel={() => setRemovingSlot(null)}
+        onConfirm={() => removingSlot !== null && removeAt(removingSlot)}
+      />
     </div>
   )
 }

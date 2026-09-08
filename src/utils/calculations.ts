@@ -1,6 +1,14 @@
-import type { Account, Budget, Movement, Category, Currency, Transfer } from '../types/models'
+import type { Account, Budget, Movement, Category, Currency, Transfer, DashboardWidgetConfig } from '../types/models'
 import { CURRENCIES } from '../types/models'
 import { toMonthKey } from './date'
+
+// Suma lo apartado en cajas de ahorro asociadas a una cuenta: es una reserva
+// sobre su saldo, no un movimiento — no aparece en ingresos/gastos.
+export function reservedForAccount(widgets: DashboardWidgetConfig[], accountId: string): number {
+  return widgets
+    .filter((w) => w.type === 'savingsBox' && w.box.accountId === accountId)
+    .reduce((sum, w) => sum + (w.type === 'savingsBox' ? w.box.current : 0), 0)
+}
 
 // La moneda de un movimiento es la de su cuenta. Los movimientos sin cuenta
 // (datos anteriores a que existieran las cuentas) se asumen en COP.

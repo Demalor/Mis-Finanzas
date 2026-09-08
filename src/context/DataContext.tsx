@@ -2,8 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { Movement, Category, Budget, RecurringMovement, Account, IncomeSource, Transfer, Loan } from '../types/models'
 import { ensureSeeded } from '../firebase/repo'
 import * as repo from '../firebase/repo'
-import { pendingDatesFor } from '../utils/recurring'
-import { todayISO } from '../utils/date'
+import { nextPendingDate } from '../utils/recurring'
 import { useAuth } from '../firebase/AuthContext'
 
 interface DataContextValue {
@@ -33,6 +32,7 @@ interface DataContextValue {
   addRecurring: (input: Omit<RecurringMovement, 'id'>) => Promise<void>
   updateRecurring: (id: string, changes: Partial<RecurringMovement>) => Promise<void>
   deleteRecurring: (id: string) => Promise<void>
+  confirmRecurringPayment: (recurringId: string) => Promise<void>
 
   addAccount: (input: Omit<Account, 'id'>) => Promise<void>
   updateAccount: (id: string, changes: Partial<Account>) => Promise<void>
@@ -57,8 +57,6 @@ const DataContext = createContext<DataContextValue | null>(null)
 type Id = { id: string }
 const addOne = <T extends Id>(set: Dispatch<SetStateAction<T[]>>, item: T) =>
   set((prev) => [...prev, item])
-const addMany = <T extends Id>(set: Dispatch<SetStateAction<T[]>>, items: T[]) =>
-  set((prev) => [...prev, ...items])
 const upsertOne = <T extends Id>(set: Dispatch<SetStateAction<T[]>>, item: T) =>
   set((prev) => (prev.some((x) => x.id === item.id) ? prev.map((x) => (x.id === item.id ? item : x)) : [...prev, item]))
 // Ignora las claves `undefined` para reflejar el `ignoreUndefinedProperties`
@@ -110,39 +108,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setLoans(ln)
   }, [userId])
 
-  // Genera los movimientos pendientes de cada recurrencia y devuelve lo creado
-  // para poder mezclarlo en el estado local sin recargar todo.
-  const generateDueRecurring = useCallback(async (): Promise<{ created: Movement[]; touched: Map<string, string> }> => {
-    const touched = new Map<string, string>()
-    if (!userId) return { created: [], touched }
-    const recs = await repo.getAllRecurring(userId)
-    const today = todayISO()
-    const toCreate: Omit<Movement, 'id' | 'createdAt' | 'updatedAt'>[] = []
-    for (const r of recs) {
-      const pending = pendingDatesFor(r, today)
-      if (pending.length === 0) continue
-      for (const date of pending) {
-        toCreate.push({
-          type: r.type,
-          amount: r.amount,
-          categoryId: r.categoryId,
-          date,
-          description: r.description,
-          recurringId: r.id,
-          accountId: r.accountId,
-          sourceId: r.type === 'ingreso' ? r.sourceId : undefined,
-        })
-      }
-      touched.set(r.id, pending[pending.length - 1])
-    }
-    if (toCreate.length === 0) return { created: [], touched }
-    const created = await repo.addMovements(userId, toCreate)
-    await Promise.all(
-      [...touched].map(([id, lastGeneratedDate]) => repo.updateRecurring(userId, id, { lastGeneratedDate }))
-    )
-    return { created, touched }
-  }, [userId])
-
   useEffect(() => {
     if (!userId) {
       setMovements([])
@@ -159,11 +124,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setLoading(true)
     ;(async () => {
       await ensureSeeded(userId)
-      await generateDueRecurring()
       await loadAll()
       setLoading(false)
     })()
-  }, [userId, generateDueRecurring, loadAll])
+  }, [userId, loadAll])
 
   const value = useMemo<DataContextValue>(
     () => ({
@@ -227,12 +191,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       addRecurring: async (input) => {
         if (!userId) return
-        const rec = await repo.addRecurring(userId, input)
-        const { created, touched } = await generateDueRecurring()
-        setRecurring((prev) =>
-          [...prev, rec].map((r) => (touched.has(r.id) ? { ...r, lastGeneratedDate: touched.get(r.id) } : r))
-        )
-        if (created.length > 0) addMany(setMovements, created)
+        addOne(setRecurring, await repo.addRecurring(userId, input))
       },
       updateRecurring: async (id, changes) => {
         if (!userId) return
@@ -243,6 +202,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (!userId) return
         await repo.deleteRecurring(userId, id)
         removeOne(setRecurring, id)
+      },
+      confirmRecurringPayment: async (recurringId) => {
+        if (!userId) return
+        const r = recurring.find((x) => x.id === recurringId)
+        if (!r) return
+        const date = nextPendingDate(r)
+        if (!date) return
+        const movement = await repo.addMovement(userId, {
+          type: r.type,
+          amount: r.amount,
+          categoryId: r.categoryId,
+          date,
+          description: r.description,
+          recurringId: r.id,
+          accountId: r.accountId,
+          sourceId: r.type === 'ingreso' ? r.sourceId : undefined,
+        })
+        addOne(setMovements, movement)
+        await repo.updateRecurring(userId, recurringId, { lastGeneratedDate: date })
+        patchOne(setRecurring, recurringId, { lastGeneratedDate: date })
       },
 
       addAccount: async (input) => {
@@ -300,7 +279,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         removeOne(setLoans, id)
       },
     }),
-    [loading, movements, categories, budgets, recurring, accounts, incomeSources, transfers, loans, loadAll, generateDueRecurring, userId]
+    [loading, movements, categories, budgets, recurring, accounts, incomeSources, transfers, loans, loadAll, userId]
   )
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
