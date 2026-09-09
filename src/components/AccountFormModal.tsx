@@ -26,59 +26,63 @@ export function AccountFormModal({
 
   return (
     <Modal open={open} onClose={onClose} title={account ? 'Editar cuenta' : 'Nueva cuenta'}>
-      <Field label="Nombre">
-        <TextInput value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Efectivo EUR, Cuenta Nequi" autoFocus />
-      </Field>
-      <Field label="Moneda">
-        <SelectInput value={moneda} onChange={(e) => setMoneda(e.target.value as Currency)}>
-          {CURRENCIES.map((c) => (
-            <option key={c.code} value={c.code}>{c.code} — {c.label}</option>
-          ))}
-        </SelectInput>
-      </Field>
-      <Field label="Tipo de cuenta">
-        <SelectInput value={tipo} onChange={(e) => setTipo(e.target.value as AccountType)}>
-          <option value="efectivo">💵 Efectivo</option>
-          <option value="banco">🏦 Cuenta bancaria</option>
-          <option value="tarjeta_credito">💳 Tarjeta de crédito</option>
-        </SelectInput>
-      </Field>
+      {/* key fuerza el remount al cambiar de cuenta editada (o a creación),
+          para que los useState de arriba vuelvan a leer los valores correctos. */}
+      <div key={account?.id ?? 'new'}>
+        <Field label="Nombre">
+          <TextInput value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Efectivo EUR, Cuenta Nequi" autoFocus />
+        </Field>
+        <Field label="Moneda">
+          <SelectInput value={moneda} onChange={(e) => setMoneda(e.target.value as Currency)}>
+            {CURRENCIES.map((c) => (
+              <option key={c.code} value={c.code}>{c.code} — {c.label}</option>
+            ))}
+          </SelectInput>
+        </Field>
+        <Field label="Tipo de cuenta">
+          <SelectInput value={tipo} onChange={(e) => setTipo(e.target.value as AccountType)}>
+            <option value="efectivo">💵 Efectivo</option>
+            <option value="banco">🏦 Cuenta bancaria</option>
+            <option value="tarjeta_credito">💳 Tarjeta de crédito</option>
+          </SelectInput>
+        </Field>
 
-      {tipo === 'tarjeta_credito' && (
-        <>
-          <Field label="Cupo (límite de crédito)">
-            <TextInput type="number" min={0} value={cupo} onChange={(e) => setCupo(Number(e.target.value))} />
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Día de corte">
-              <TextInput type="number" min={1} max={31} value={fechaCorte} onChange={(e) => setFechaCorte(Number(e.target.value))} />
+        {tipo === 'tarjeta_credito' && (
+          <>
+            <Field label="Cupo (límite de crédito)">
+              <TextInput type="number" min={0} value={cupo} onChange={(e) => setCupo(Number(e.target.value))} />
             </Field>
-            <Field label="Día de pago">
-              <TextInput type="number" min={1} max={31} value={fechaPago} onChange={(e) => setFechaPago(Number(e.target.value))} />
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Día de corte">
+                <TextInput type="number" min={1} max={31} value={fechaCorte} onChange={(e) => setFechaCorte(Number(e.target.value))} />
+              </Field>
+              <Field label="Día de pago">
+                <TextInput type="number" min={1} max={31} value={fechaPago} onChange={(e) => setFechaPago(Number(e.target.value))} />
+              </Field>
+            </div>
+            <Field label="Avisar con cuántos días de anticipación" hint="Antes de la fecha de pago">
+              <TextInput type="number" min={0} max={30} value={diasAviso} onChange={(e) => setDiasAviso(Number(e.target.value))} />
             </Field>
-          </div>
-          <Field label="Avisar con cuántos días de anticipación" hint="Antes de la fecha de pago">
-            <TextInput type="number" min={0} max={30} value={diasAviso} onChange={(e) => setDiasAviso(Number(e.target.value))} />
-          </Field>
-        </>
-      )}
+          </>
+        )}
 
-      <Button
-        className="w-full"
-        size="lg"
-        disabled={!nombre.trim()}
-        onClick={() =>
-          onSave({
-            nombre: nombre.trim(),
-            moneda,
-            tipo,
-            activa: true,
-            ...(tipo === 'tarjeta_credito' ? { cupo, fechaCorte, fechaPago, diasAvisoPago: diasAviso } : {}),
-          })
-        }
-      >
-        Guardar cuenta
-      </Button>
+        <Button
+          className="w-full"
+          size="lg"
+          disabled={!nombre.trim()}
+          onClick={() =>
+            onSave({
+              nombre: nombre.trim(),
+              moneda,
+              tipo,
+              activa: true,
+              ...(tipo === 'tarjeta_credito' ? { cupo, fechaCorte, fechaPago, diasAvisoPago: diasAviso } : {}),
+            })
+          }
+        >
+          Guardar cuenta
+        </Button>
+      </div>
     </Modal>
   )
 }
