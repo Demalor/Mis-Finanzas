@@ -37,9 +37,15 @@ service cloud.firestore {
 
       allow delete: if false;
 
-      // Datos financieros del usuario: solo el dueño, lectura y escritura.
+      // Datos financieros del usuario: solo el dueño, y solo si su cuenta
+      // sigue activa (si un admin la desactiva, esto corta el acceso de
+      // verdad, no solo la puerta de entrada del login). El "!exists(...)"
+      // cubre el instante entre crear la sesión y crear el perfil (signUp /
+      // primer login con Google): ahí todavía no hay nada que desactivar.
       match /{coleccion}/{docId} {
-        allow read, write: if request.auth != null && request.auth.uid == uid;
+        allow read, write: if request.auth != null && request.auth.uid == uid
+          && (!exists(/databases/$(database)/documents/usuarios/$(uid))
+              || get(/databases/$(database)/documents/usuarios/$(uid)).data.activo == true);
       }
     }
 

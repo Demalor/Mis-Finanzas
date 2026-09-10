@@ -147,6 +147,21 @@ test('sin sesión NO puede leer movimientos de nadie', async () => {
   await assertFails(getDoc(doc(as(null), 'usuarios', A, 'movimientos', 'm1')))
 })
 
+test('una cuenta desactivada pierde el acceso a sus propios datos', async () => {
+  await bypass((db) => setDoc(doc(db, 'usuarios', A), { uid: A, nombre: 'A', correo: 'a@x.com', rol: 'miembro', activo: false, creadoEn: 2 }))
+  await assertFails(getDocs(collection(as(A), 'usuarios', A, 'movimientos')))
+  await assertFails(setDoc(doc(as(A), 'usuarios', A, 'movimientos', 'm3'), { id: 'm3', amount: 1, type: 'gasto' }))
+  // Se reactiva para no afectar los demás tests que corren después.
+  await bypass((db) => setDoc(doc(db, 'usuarios', A), { uid: A, nombre: 'A', correo: 'a@x.com', rol: 'miembro', activo: true, creadoEn: 2 }))
+})
+
+test('sin perfil todavía (bootstrapping) sí se puede escribir en la propia colección', async () => {
+  const nuevo = 'nuevo-usuario'
+  // Ventana entre crear la sesión y crear el documento de perfil: el signUp
+  // (o el primer login con Google) siembra categorías por defecto ahí mismo.
+  await assertSucceeds(setDoc(doc(as(nuevo), 'usuarios', nuevo, 'categorias', 'c1'), { id: 'c1', name: 'Comida' }))
+})
+
 // ---------- Códigos de invitación ----------
 
 test('código: lectura puntual sin sesión permitida', async () => {
