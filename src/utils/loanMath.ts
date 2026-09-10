@@ -1,5 +1,5 @@
-import type { Loan } from '../types/models'
-import { addMonths, todayISO } from './date'
+import type { Loan, LoanPayment, LoanStatus } from '../types/models'
+import { addMonths, todayISO, nextMonthlyDate } from './date'
 
 export interface InstallmentBreakdown {
   number: number
@@ -12,7 +12,7 @@ export interface InstallmentBreakdown {
   paid: boolean // si la fecha ya pasó
 }
 
-function rateForDate(loan: Loan, date: string): number {
+export function rateForDate(loan: Loan, date: string): number {
   if (!loan.hasInterest) return 0
   let rate = loan.interestRate ?? 0
   if (loan.interestRateType === 'variable' && loan.rateHistory) {
@@ -39,13 +39,14 @@ export function buildAmortizationSchedule(loan: Loan): InstallmentBreakdown[] {
   let balance = loan.totalAmount
   const today = todayISO()
 
-  for (let k = 1; k <= loan.installmentCount; k++) {
+  const cuotas = loan.installmentCount ?? 0
+  for (let k = 1; k <= cuotas; k++) {
     const date = addMonths(loan.startDate.slice(0, 7), k) + '-' + loan.startDate.slice(8, 10)
     const rate = rateForDate(loan, date)
-    const payment = calcInstallmentAmount(loan.totalAmount, loan.hasInterest ? (loan.interestRate ?? 0) : 0, loan.installmentCount)
+    const payment = calcInstallmentAmount(loan.totalAmount, loan.hasInterest ? (loan.interestRate ?? 0) : 0, cuotas)
     const interest = balance * (rate / 100)
     let principal = payment - interest
-    if (k === loan.installmentCount) principal = balance // ajusta el último para cerrar en cero
+    if (k === cuotas) principal = balance // ajusta el último para cerrar en cero
     balance = Math.max(0, balance - principal)
 
     schedule.push({
@@ -101,4 +102,51 @@ export function daysUntil(dateISO: string): number {
   const today = new Date(todayISO() + 'T00:00:00')
   const target = new Date(dateISO + 'T00:00:00')
   return Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+}
+
+// ---------- Estado real, calculado con los pagos que la persona registró ----------
+
+export interface LoanTotals {
+  capitalPagado: number
+  interesPagado: number
+  totalPagado: number
+  saldo: number // capital que falta
+  ultimoPago: LoanPayment | null
+  pagosOrdenados: LoanPayment[] // del más reciente al más antiguo
+}
+
+export function loanTotals(loan: Loan): LoanTotals {
+  const pagos = loan.payments ?? []
+  const capitalPagado = pagos.reduce((s, p) => s + (p.capital ?? 0), 0)
+  const interesPagado = pagos.reduce((s, p) => s + (p.interest ?? 0), 0)
+  const pagosOrdenados = [...pagos].sort((a, b) => b.date.localeCompare(a.date))
+  return {
+    capitalPagado,
+    interesPagado,
+    totalPagado: capitalPagado + interesPagado,
+    saldo: Math.max(0, loan.totalAmount - capitalPagado),
+    ultimoPago: pagosOrdenados[0] ?? null,
+    pagosOrdenados,
+  }
+}
+
+// Estado del préstamo tolerando los registros viejos, que no traen `estado`.
+export function loanStatus(loan: Loan): LoanStatus {
+  return loan.estado ?? (loan.active ? 'activa' : 'terminada')
+}
+
+// Interés que correspondería al saldo de hoy: solo una sugerencia para
+// prellenar el reparto — la persona puede cambiarlo o dejarlo en cero.
+export function suggestedInterest(loan: Loan, date: string = todayISO()): number {
+  if (!loan.hasInterest) return 0
+  const { saldo } = loanTotals(loan)
+  return saldo * (rateForDate(loan, date) / 100)
+}
+
+// Próxima fecha de cuota, solo para los préstamos que sí tienen plan pactado.
+export function nextInstallmentDate(loan: Loan, from: string = todayISO()): string | null {
+  if (!loan.installmentCount && !loan.paymentDay) return null
+  if (loan.paymentDay) return nextMonthlyDate(loan.paymentDay)
+  const schedule = buildAmortizationSchedule(loan)
+  return schedule.find((s) => s.date > from)?.date ?? null
 }

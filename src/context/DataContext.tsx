@@ -1,8 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type Dispatch, type SetStateAction, type ReactNode } from 'react'
-import type { Movement, Category, Budget, RecurringMovement, Account, IncomeSource, Transfer, Loan } from '../types/models'
+import type { Movement, Category, Budget, RecurringMovement, Account, IncomeSource, Transfer, Loan, LoanPayment, Project, ProjectEntry } from '../types/models'
 import { ensureSeeded } from '../firebase/repo'
 import * as repo from '../firebase/repo'
 import { nextPendingDate } from '../utils/recurring'
+import { loanTotals } from '../utils/loanMath'
 import { useAuth } from '../firebase/AuthContext'
 
 interface DataContextValue {
@@ -15,6 +16,8 @@ interface DataContextValue {
   incomeSources: IncomeSource[]
   transfers: Transfer[]
   loans: Loan[]
+  projects: Project[]
+  projectEntries: ProjectEntry[]
   refresh: () => Promise<void>
 
   addMovement: (input: Omit<Movement, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Movement>
@@ -48,7 +51,19 @@ interface DataContextValue {
   addLoan: (input: Omit<Loan, 'id'>) => Promise<void>
   updateLoan: (id: string, changes: Partial<Loan>) => Promise<void>
   deleteLoan: (id: string) => Promise<void>
+  registerLoanPayment: (loanId: string, input: LoanPaymentInput) => Promise<void>
+  deleteLoanPayment: (loanId: string, paymentId: string) => Promise<void>
+
+  addProject: (input: Omit<Project, 'id'>) => Promise<void>
+  updateProject: (id: string, changes: Partial<Project>) => Promise<void>
+  deleteProject: (id: string) => Promise<void>
+  addProjectEntry: (input: Omit<ProjectEntry, 'id'>) => Promise<void>
+  deleteProjectEntry: (id: string) => Promise<void>
 }
+
+// categoryId no se guarda en el pago: solo clasifica el movimiento que se crea
+// cuando el pago sale de una cuenta real.
+export type LoanPaymentInput = Omit<LoanPayment, 'id' | 'movementId'> & { categoryId?: string }
 
 const DataContext = createContext<DataContextValue | null>(null)
 
@@ -85,10 +100,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([])
   const [transfers, setTransfers] = useState<Transfer[]>([])
   const [loans, setLoans] = useState<Loan[]>([])
+  const [projects, setProjects] = useState<Project[]>([])
+  const [projectEntries, setProjectEntries] = useState<ProjectEntry[]>([])
 
   const loadAll = useCallback(async () => {
     if (!userId) return
-    const [m, c, b, r, acc, src, trf, ln] = await Promise.all([
+    const [m, c, b, r, acc, src, trf, ln, prj, pent] = await Promise.all([
       repo.getAllMovements(userId),
       repo.getAllCategories(userId),
       repo.getAllBudgets(userId),
@@ -97,6 +114,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       repo.getAllIncomeSources(userId),
       repo.getAllTransfers(userId),
       repo.getAllLoans(userId),
+      repo.getAllProjects(userId),
+      repo.getAllProjectEntries(userId),
     ])
     setMovements(m)
     setCategories(c)
@@ -106,6 +125,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setIncomeSources(src)
     setTransfers(trf)
     setLoans(ln)
+    setProjects(prj)
+    setProjectEntries(pent)
   }, [userId])
 
   useEffect(() => {
@@ -118,6 +139,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setIncomeSources([])
       setTransfers([])
       setLoans([])
+      setProjects([])
+      setProjectEntries([])
       setLoading(false)
       return
     }
@@ -140,6 +163,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       incomeSources,
       transfers,
       loans,
+      projects,
+      projectEntries,
       refresh: loadAll,
 
       addMovement: async (input) => {
@@ -273,13 +298,87 @@ export function DataProvider({ children }: { children: ReactNode }) {
         await repo.updateLoan(userId, id, changes)
         patchOne(setLoans, id, changes)
       },
+      addProject: async (input) => {
+        if (!userId) return
+        addOne(setProjects, await repo.addProject(userId, input))
+      },
+      updateProject: async (id, changes) => {
+        if (!userId) return
+        await repo.updateProject(userId, id, changes)
+        patchOne(setProjects, id, changes)
+      },
+      deleteProject: async (id) => {
+        if (!userId) return
+        await repo.deleteProject(userId, id)
+        removeOne(setProjects, id)
+        setProjectEntries((prev) => prev.filter((e) => e.projectId !== id))
+      },
+      addProjectEntry: async (input) => {
+        if (!userId) return
+        addOne(setProjectEntries, await repo.addProjectEntry(userId, input))
+      },
+      deleteProjectEntry: async (id) => {
+        if (!userId) return
+        await repo.deleteProjectEntry(userId, id)
+        removeOne(setProjectEntries, id)
+      },
+
       deleteLoan: async (id) => {
         if (!userId) return
         await repo.deleteLoan(userId, id)
         removeOne(setLoans, id)
       },
+      // Un pago solo crea movimiento si salió de una cuenta real: los abonos
+      // en efectivo o los que un tercero paga directamente no tocan cuentas.
+      registerLoanPayment: async (loanId, input) => {
+        if (!userId) return
+        const loan = loans.find((l) => l.id === loanId)
+        if (!loan) return
+
+        const { categoryId, ...rest } = input
+        const payment: LoanPayment = { ...rest, id: crypto.randomUUID() }
+
+        if (input.accountId && categoryId) {
+          const movement = await repo.addMovement(userId, {
+            type: loan.direction === 'debo' ? 'gasto' : 'ingreso',
+            amount: input.sourceAmount ?? input.amount,
+            categoryId,
+            date: input.date,
+            description: input.note?.trim() || `${loan.direction === 'debo' ? 'Pago a' : 'Cobro a'} ${loan.counterpartyName}`,
+            accountId: input.accountId,
+            loanId,
+          })
+          addOne(setMovements, movement)
+          payment.movementId = movement.id
+        }
+
+        const payments = [...(loan.payments ?? []), payment]
+        const saldo = loanTotals({ ...loan, payments }).saldo
+        const changes: Partial<Loan> = { payments, ...(saldo <= 0 ? { estado: 'terminada' as const } : {}) }
+        await repo.updateLoan(userId, loanId, changes)
+        patchOne(setLoans, loanId, changes)
+      },
+      deleteLoanPayment: async (loanId, paymentId) => {
+        if (!userId) return
+        const loan = loans.find((l) => l.id === loanId)
+        if (!loan) return
+        const payment = (loan.payments ?? []).find((p) => p.id === paymentId)
+        if (payment?.movementId) {
+          await repo.deleteMovement(userId, payment.movementId)
+          removeOne(setMovements, payment.movementId)
+        }
+        const payments = (loan.payments ?? []).filter((p) => p.id !== paymentId)
+        // Al quitar un pago el préstamo vuelve a estar vivo si queda saldo.
+        const saldo = loanTotals({ ...loan, payments }).saldo
+        const changes: Partial<Loan> = {
+          payments,
+          ...(saldo > 0 && loan.estado === 'terminada' ? { estado: 'activa' as const } : {}),
+        }
+        await repo.updateLoan(userId, loanId, changes)
+        patchOne(setLoans, loanId, changes)
+      },
     }),
-    [loading, movements, categories, budgets, recurring, accounts, incomeSources, transfers, loans, loadAll, userId]
+    [loading, movements, categories, budgets, recurring, accounts, incomeSources, transfers, loans, projects, projectEntries, loadAll, userId]
   )
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>

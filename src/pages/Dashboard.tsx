@@ -11,7 +11,7 @@ import { WidgetsPanel } from '../components/WidgetsPanel'
 import { formatAmount } from '../utils/currency'
 import { currentMonthKey, nextMonthlyDate } from '../utils/date'
 import { movementsInMonth, categoryBreakdown } from '../utils/calculations'
-import { summarizeLoan, daysUntil } from '../utils/loanMath'
+import { loanStatus, loanTotals, nextInstallmentDate, daysUntil } from '../utils/loanMath'
 import { nextPendingDate } from '../utils/recurring'
 import { useTheme } from '../context/ThemeContext'
 import type { Currency } from '../types/models'
@@ -57,16 +57,18 @@ export function Dashboard() {
         list.push({ id: acc.id, label: `Tarjeta ${acc.nombre}`, days, amount: '', href: '/cuentas' })
       }
     }
-    for (const loan of loans.filter((l) => l.active)) {
-      const summary = summarizeLoan(loan)
-      if (!summary.nextPaymentDate) continue
-      const days = daysUntil(summary.nextPaymentDate)
+    // Solo avisan las que están en curso y tienen fecha pactada; las de pago
+    // libre no tienen "próxima cuota" que recordar.
+    for (const loan of loans.filter((l) => loanStatus(l) === 'activa')) {
+      const proxima = nextInstallmentDate(loan)
+      if (!proxima) continue
+      const days = daysUntil(proxima)
       if (days <= loan.diasAvisoPago) {
         list.push({
           id: loan.id,
           label: `Préstamo: ${loan.counterpartyName}`,
           days,
-          amount: formatAmount(summary.nextPaymentAmount ?? 0, loan.currency),
+          amount: formatAmount(loanTotals(loan).saldo, loan.currency),
           href: '/prestamos',
         })
       }

@@ -19,6 +19,8 @@ import type {
   IncomeSource,
   Transfer,
   Loan,
+  Project,
+  ProjectEntry,
 } from '../types/models'
 import { DEFAULT_CATEGORIES } from './defaultCategories'
 
@@ -260,21 +262,64 @@ export async function deleteLoan(userId: string, id: string) {
   await deleteDoc(doc(col(userId, 'prestamos'), id))
 }
 
+// ---------- Proyectos ----------
+
+export async function getAllProjects(userId: string): Promise<Project[]> {
+  const snap = await getDocs(col(userId, 'proyectos'))
+  return snap.docs.map((d) => d.data() as Project)
+}
+
+export async function addProject(userId: string, input: Omit<Project, 'id'>) {
+  const project: Project = { ...input, id: uid('proj') }
+  await setDoc(doc(col(userId, 'proyectos'), project.id), project)
+  return project
+}
+
+export async function updateProject(userId: string, id: string, changes: Partial<Project>) {
+  await setDoc(doc(col(userId, 'proyectos'), id), changes, { merge: true })
+}
+
+export async function deleteProject(userId: string, id: string) {
+  await deleteDoc(doc(col(userId, 'proyectos'), id))
+  // Las entradas del proyecto no tienen sentido sin él.
+  const snap = await getDocs(col(userId, 'proyectoMovimientos'))
+  const suyas = snap.docs.filter((d) => (d.data() as ProjectEntry).projectId === id)
+  await commitInBatches(suyas.map((d) => ({ op: 'delete' as const, ref: d.ref })))
+}
+
+export async function getAllProjectEntries(userId: string): Promise<ProjectEntry[]> {
+  const snap = await getDocs(col(userId, 'proyectoMovimientos'))
+  return snap.docs.map((d) => d.data() as ProjectEntry)
+}
+
+export async function addProjectEntry(userId: string, input: Omit<ProjectEntry, 'id'>) {
+  const entry: ProjectEntry = { ...input, id: uid('pent') }
+  await setDoc(doc(col(userId, 'proyectoMovimientos'), entry.id), entry)
+  return entry
+}
+
+export async function deleteProjectEntry(userId: string, id: string) {
+  await deleteDoc(doc(col(userId, 'proyectoMovimientos'), id))
+}
+
 // ---------- Respaldo ----------
 
 export async function exportBackup(userId: string): Promise<BackupData> {
-  const [movements, categories, budgets, recurring, accounts, incomeSources, transfers, loans] = await Promise.all([
-    getAllMovements(userId),
-    getAllCategories(userId),
-    getAllBudgets(userId),
-    getAllRecurring(userId),
-    getAllAccounts(userId),
-    getAllIncomeSources(userId),
-    getAllTransfers(userId),
-    getAllLoans(userId),
-  ])
+  const [movements, categories, budgets, recurring, accounts, incomeSources, transfers, loans, projects, projectEntries] =
+    await Promise.all([
+      getAllMovements(userId),
+      getAllCategories(userId),
+      getAllBudgets(userId),
+      getAllRecurring(userId),
+      getAllAccounts(userId),
+      getAllIncomeSources(userId),
+      getAllTransfers(userId),
+      getAllLoans(userId),
+      getAllProjects(userId),
+      getAllProjectEntries(userId),
+    ])
   return {
-    version: 3,
+    version: 4,
     exportedAt: new Date().toISOString(),
     movements,
     categories,
@@ -284,6 +329,8 @@ export async function exportBackup(userId: string): Promise<BackupData> {
     incomeSources,
     transfers,
     loans,
+    projects,
+    projectEntries,
   }
 }
 
@@ -302,6 +349,8 @@ const ALL_COLLECTIONS = [
   'fuentesIngreso',
   'transferencias',
   'prestamos',
+  'proyectos',
+  'proyectoMovimientos',
 ] as const
 
 export async function restoreBackup(userId: string, data: BackupData) {
@@ -317,6 +366,8 @@ export async function restoreBackup(userId: string, data: BackupData) {
   for (const s of data.incomeSources ?? []) push('fuentesIngreso', s.id, s)
   for (const t of data.transfers ?? []) push('transferencias', t.id, t)
   for (const l of data.loans ?? []) push('prestamos', l.id, l)
+  for (const p of data.projects ?? []) push('proyectos', p.id, p)
+  for (const e of data.projectEntries ?? []) push('proyectoMovimientos', e.id, e)
 
   await commitInBatches(ops)
 }

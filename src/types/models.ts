@@ -50,6 +50,7 @@ export interface Movement {
   createdAt: number
   updatedAt: number
   recurringId?: string // si vino de un movimiento recurrente
+  loanId?: string // si es el pago de un préstamo o deuda
   accountId?: string // cuenta a la que pertenece (nueva; opcional por compatibilidad con datos viejos)
   sourceId?: string // fuente del ingreso (solo aplica si type === 'ingreso')
 }
@@ -78,6 +79,25 @@ export interface LoanRateChange {
   rate: number // tasa mensual, %
 }
 
+export type LoanStatus = 'activa' | 'pausada' | 'terminada'
+
+// Un pago realmente hecho. El reparto capital/interés lo decide la persona:
+// hay meses en que solo se alcanzan a pagar los intereses.
+export interface LoanPayment {
+  id: string
+  date: string
+  amount: number // capital + interest, en la moneda del préstamo
+  capital: number
+  interest: number
+  // De dónde salió (o a dónde entró) la plata. Si la moneda de la cuenta es
+  // distinta a la del préstamo, sourceAmount guarda lo que se movió allá.
+  accountId?: string
+  sourceAmount?: number
+  sourceCurrency?: Currency
+  movementId?: string // movimiento creado, si el pago salió de una cuenta
+  note?: string
+}
+
 export interface Loan {
   id: string
   direction: LoanDirection
@@ -85,7 +105,7 @@ export interface Loan {
   counterpartyContact?: string
   currency: Currency
   totalAmount: number
-  installmentCount: number
+  installmentCount?: number // opcional: solo si hay un plan de cuotas pactado
   startDate: string
   hasInterest: boolean
   interestRateType?: InterestRateType
@@ -93,7 +113,8 @@ export interface Loan {
   rateHistory?: LoanRateChange[] // cambios posteriores, solo si es variable
   diasAvisoPago: number
   paymentDay?: number // día del mes en que se paga la cuota
-  payments: { date: string; amount: number }[] // pagos manuales registrados
+  payments: LoanPayment[] // pagos manuales registrados
+  estado?: LoanStatus // ausente en préstamos viejos: se deduce de `active`
   active: boolean
 }
 
@@ -120,6 +141,31 @@ export interface Budget {
   month: string // formato "YYYY-MM"
   amount: number
   currency?: Currency // moneda del límite; los presupuestos viejos se asumen en COP
+}
+
+// ---------- Proyectos ----------
+
+// Un negocio o inversión puntual (la venta de tamales, un viaje que se cobra
+// aparte). Vive fuera de las cuentas: sirve para saber si algo fue rentable.
+export interface Project {
+  id: string
+  name: string
+  icon?: string
+  active: boolean // false = cerrado/archivado
+  createdAt: number
+}
+
+// Un gasto o una venta del proyecto. Puede nacer de un movimiento real
+// (llevándose solo una parte de su monto) o registrarse suelto.
+export interface ProjectEntry {
+  id: string
+  projectId: string
+  type: MovementType
+  amount: number
+  currency: Currency
+  description: string
+  date: string
+  linkedMovementId?: string
 }
 
 // ---------- Multiusuario (Firebase) ----------
@@ -199,4 +245,6 @@ export interface BackupData {
   incomeSources?: IncomeSource[]
   transfers?: Transfer[]
   loans?: Loan[]
+  projects?: Project[]
+  projectEntries?: ProjectEntry[]
 }

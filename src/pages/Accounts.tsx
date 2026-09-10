@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useData } from '../context/DataContext'
 import { useAuth } from '../firebase/AuthContext'
 import { Card } from '../components/Card'
@@ -130,19 +131,26 @@ function AccountCard({
   onDelete: () => void
 }) {
   const available = balance - reserved
+  const navigate = useNavigate()
   return (
     <Card padding="md" className="flex items-center gap-3">
-      <div className="w-12 h-12 rounded-full flex items-center justify-center text-[var(--fs-xl)] shrink-0 bg-[var(--color-muted)]">
-        {TYPE_LABELS[account.tipo].icon}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="font-semibold text-[var(--fs-md)] truncate">{account.nombre}</div>
-        <div className="text-[var(--fs-xs)] text-[var(--color-text-secondary)]">{TYPE_LABELS[account.tipo].label} · {account.moneda}</div>
-        <div className="text-[var(--fs-md)] font-bold mt-1">{formatAmount(available, account.moneda)}</div>
-        {reserved > 0 && (
-          <div className="text-[var(--fs-xs)] text-[var(--color-text-secondary)]">Apartado: {formatAmount(reserved, account.moneda)}</div>
-        )}
-      </div>
+      <button
+        onClick={() => navigate(`/cuentas/${account.id}`)}
+        className="flex items-center gap-3 flex-1 min-w-0 text-left"
+        aria-label={`Ver movimientos de ${account.nombre}`}
+      >
+        <div className="w-12 h-12 rounded-full flex items-center justify-center text-[var(--fs-xl)] shrink-0 bg-[var(--color-muted)]">
+          {TYPE_LABELS[account.tipo].icon}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-[var(--fs-md)] truncate">{account.nombre}</div>
+          <div className="text-[var(--fs-xs)] text-[var(--color-text-secondary)]">{TYPE_LABELS[account.tipo].label} · {account.moneda}</div>
+          <div className="text-[var(--fs-md)] font-bold mt-1">{formatAmount(available, account.moneda)}</div>
+          {reserved > 0 && (
+            <div className="text-[var(--fs-xs)] text-[var(--color-text-secondary)]">Apartado: {formatAmount(reserved, account.moneda)}</div>
+          )}
+        </div>
+      </button>
       <button onClick={onEdit} aria-label="Editar cuenta" className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-[var(--color-muted)] text-[var(--fs-md)]">✏️</button>
       <button onClick={onDelete} aria-label="Eliminar cuenta" className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-[var(--color-expense-soft)] text-[var(--fs-md)]" style={{ color: 'var(--color-expense)' }}>🗑️</button>
     </Card>
@@ -150,6 +158,7 @@ function AccountCard({
 }
 
 function CreditCardCard({ account, balance, onEdit, onDelete }: { account: Account; balance: number; onEdit: () => void; onDelete: () => void }) {
+  const navigate = useNavigate()
   const cupo = account.cupo ?? 0
   const disponible = cupo - balance
   const pct = cupo > 0 ? Math.min(100, (balance / cupo) * 100) : 0
@@ -165,11 +174,17 @@ function CreditCardCard({ account, balance, onEdit, onDelete }: { account: Accou
   return (
     <Card padding="md">
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-12 h-12 rounded-full flex items-center justify-center text-[var(--fs-xl)] shrink-0 bg-[var(--color-muted)]">💳</div>
-        <div className="flex-1 min-w-0">
-          <div className="font-semibold text-[var(--fs-md)] truncate">{account.nombre}</div>
-          <div className="text-[var(--fs-xs)] text-[var(--color-text-secondary)]">{account.moneda}</div>
-        </div>
+        <button
+          onClick={() => navigate(`/cuentas/${account.id}`)}
+          className="flex items-center gap-3 flex-1 min-w-0 text-left"
+          aria-label={`Ver movimientos de ${account.nombre}`}
+        >
+          <div className="w-12 h-12 rounded-full flex items-center justify-center text-[var(--fs-xl)] shrink-0 bg-[var(--color-muted)]">💳</div>
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-[var(--fs-md)] truncate">{account.nombre}</div>
+            <div className="text-[var(--fs-xs)] text-[var(--color-text-secondary)]">{account.moneda}</div>
+          </div>
+        </button>
         <button onClick={onEdit} aria-label="Editar tarjeta" className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-[var(--color-muted)] text-[var(--fs-md)]">✏️</button>
         <button onClick={onDelete} aria-label="Eliminar tarjeta" className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-[var(--color-expense-soft)] text-[var(--fs-md)]" style={{ color: 'var(--color-expense)' }}>🗑️</button>
       </div>

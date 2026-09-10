@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { to: '/agregar', label: 'Agregar', icon: '➕', highlight: true },
   { to: '/cuentas', label: 'Cuentas', icon: '👛' },
   { to: '/prestamos', label: 'Préstamos', icon: '🤝' },
+  { to: '/proyectos', label: 'Proyectos', icon: '🍲' },
   { to: '/categorias', label: 'Organización', icon: '🗂️' },
   { to: '/resumen', label: 'Resumen', icon: '🥧' },
   { to: '/configuracion', label: 'Configuración', icon: '⚙️' },
