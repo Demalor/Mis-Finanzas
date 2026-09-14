@@ -27,7 +27,7 @@ interface DashboardAlert {
 
 export function Dashboard() {
   const { movements, categories, accounts, loans, recurring, confirmRecurringPayment, loading } = useData()
-  const { profile } = useAuth()
+  const { profile, updateResumenFijoOculto } = useAuth()
   const { theme, toggleTheme } = useTheme()
   // El Inicio siempre muestra el mes actual. Para navegar entre meses, Movimientos.
   const month = currentMonthKey()
@@ -171,12 +171,22 @@ export function Dashboard() {
       <WidgetsPanel preferredCurrency={preferredCurrency} monthMovements={monthMovements} accountCurrency={accountCurrency} />
 
       {/* Resumen por categoría */}
+      {!profile?.resumenFijoOculto && (
       <Card>
         <div className="flex items-center justify-between gap-3 mb-[var(--sp-4)]">
           <h2 className="t-h3">Gastos por categoría ({preferredCurrency})</h2>
-          <Link to="/resumen" className="text-[var(--fs-sm)] font-semibold shrink-0" style={{ color: 'var(--color-accent-ink)' }}>
-            Ver todo
-          </Link>
+          <div className="flex items-center gap-3 shrink-0">
+            <Link to="/resumen" className="text-[var(--fs-sm)] font-semibold" style={{ color: 'var(--color-accent-ink)' }}>
+              Ver todo
+            </Link>
+            <button
+              onClick={() => updateResumenFijoOculto(true)}
+              aria-label="Ocultar gastos por categoría"
+              className="w-6 h-6 flex items-center justify-center rounded-full bg-[var(--color-muted)] hover:bg-[var(--color-expense-soft)] text-[var(--fs-2xs)]"
+            >
+              ✕
+            </button>
+          </div>
         </div>
         {breakdown.length === 0 ? (
           <p className="text-[var(--fs-base)] text-[var(--color-text-secondary)] py-[var(--sp-4)]">Aún no hay gastos registrados este mes.</p>
@@ -201,6 +211,7 @@ export function Dashboard() {
           </div>
         )}
       </Card>
+      )}
 
       {/* Movimientos recientes */}
       <Card>

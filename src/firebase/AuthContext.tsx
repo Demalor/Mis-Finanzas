@@ -44,6 +44,7 @@ interface AuthContextValue {
   markNoveltiesSeen: (version: number) => Promise<void>
   updateDashboardWidgets: (widgets: DashboardWidgetConfig[]) => Promise<void>
   completeTour: () => Promise<void>
+  updateResumenFijoOculto: (oculto: boolean) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -250,6 +251,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile((prev) => (prev ? { ...prev, tourCompletado: true } : prev))
   }
 
+  async function updateResumenFijoOculto(oculto: boolean) {
+    if (!user) return
+    await updateDoc(doc(db, 'usuarios', user.uid), { resumenFijoOculto: oculto })
+    setProfile((prev) => (prev ? { ...prev, resumenFijoOculto: oculto } : prev))
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -267,6 +274,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         markNoveltiesSeen,
         updateDashboardWidgets,
         completeTour,
+        updateResumenFijoOculto,
       }}
     >
       {children}

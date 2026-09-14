@@ -184,6 +184,7 @@ export interface UserProfile {
   ultimaConexion?: number // timestamp de la última vez que abrió la app
   dashboardWidgets?: DashboardWidgetConfig[] // panel de widgets personalizable en Inicio
   tourCompletado?: boolean // false solo en cuentas nuevas; ausente = no se le impone el tour
+  resumenFijoOculto?: boolean // oculta "Balance en COP" y "Gastos por categoría" del Inicio (útil si todas las cuentas son en otra moneda)
 }
 
 // ---------- Panel de widgets del Inicio ----------

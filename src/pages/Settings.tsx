@@ -11,7 +11,7 @@ import { formatDateReadable, todayISO } from '../utils/date'
 
 export function Settings() {
   const { movements, categories, refresh } = useData()
-  const { user, profile, signOut } = useAuth()
+  const { user, profile, signOut, updateResumenFijoOculto } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -89,6 +89,20 @@ export function Settings() {
           {theme === 'dark' ? '☀️ Modo claro' : '🌙 Modo oscuro'}
         </Button>
       </Card>
+
+      {profile?.resumenFijoOculto && (
+        <Card padding="lg" className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <div className="font-semibold text-[var(--fs-md)]">Resumen en Inicio</div>
+            <div className="text-[var(--fs-sm)] text-[var(--color-text-secondary)]">
+              Ocultaste el "Balance en COP" y "Gastos por categoría" del Inicio.
+            </div>
+          </div>
+          <Button variant="secondary" onClick={() => updateResumenFijoOculto(false)}>
+            Mostrar de nuevo
+          </Button>
+        </Card>
+      )}
 
       <Card padding="lg">
         <h2 className="t-h3 mb-1">Cuentas, préstamos y organización</h2>

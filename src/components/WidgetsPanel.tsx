@@ -16,7 +16,7 @@ import { formatAmount } from '../utils/currency'
 import { totalsFor, currencyOf, accountBalance, reservedForAccount } from '../utils/calculations'
 import type { Currency, DashboardWidgetConfig, DashboardWidgetType, Movement } from '../types/models'
 
-const MAX_WIDGETS = 4
+const MAX_WIDGETS = 8
 
 const NEEDS_CONFIG: DashboardWidgetType[] = ['accountBalance', 'budgetStatus', 'categoryTotal', 'quickPay', 'savingsBox']
 
@@ -29,7 +29,7 @@ export function WidgetsPanel({
   monthMovements: Movement[]
   accountCurrency: Map<string, Currency>
 }) {
-  const { profile, updateDashboardWidgets } = useAuth()
+  const { profile, updateDashboardWidgets, updateResumenFijoOculto } = useAuth()
   const { accounts, movements, transfers } = useData()
   const widgets = profile?.dashboardWidgets ?? []
   const [pickerSlot, setPickerSlot] = useState<number | null>(null)
@@ -76,13 +76,24 @@ export function WidgetsPanel({
     <div>
       <h2 className="t-h3 mb-[var(--sp-3)]">Resumen y widgets</h2>
       <div className="grid grid-cols-2 gap-[var(--sp-3)]">
-        <WidgetShell
-          icon="💰"
-          label={`Balance en ${preferredCurrency}`}
-          value={formatAmount(balanceTotals.balance, preferredCurrency)}
-          sub={`↑${formatAmount(balanceTotals.income, preferredCurrency)} ↓${formatAmount(balanceTotals.expense, preferredCurrency)}`}
-          tone={balanceTotals.balance < 0 ? 'expense' : undefined}
-        />
+        {!profile?.resumenFijoOculto && (
+          <div className="relative">
+            <button
+              onClick={() => updateResumenFijoOculto(true)}
+              aria-label="Ocultar balance fijo"
+              className="absolute top-1.5 right-1.5 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-[var(--color-muted)] hover:bg-[var(--color-expense-soft)] text-[var(--fs-2xs)]"
+            >
+              ✕
+            </button>
+            <WidgetShell
+              icon="💰"
+              label={`Balance en ${preferredCurrency}`}
+              value={formatAmount(balanceTotals.balance, preferredCurrency)}
+              sub={`↑${formatAmount(balanceTotals.income, preferredCurrency)} ↓${formatAmount(balanceTotals.expense, preferredCurrency)}`}
+              tone={balanceTotals.balance < 0 ? 'expense' : undefined}
+            />
+          </div>
+        )}
 
         {widgets.map((config, slot) => {
           return (
