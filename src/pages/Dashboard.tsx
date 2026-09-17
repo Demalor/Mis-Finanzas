@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useData } from '../context/DataContext'
-import { useAuth } from '../firebase/AuthContext'
+import { useData } from '../context/useData'
+import { useAuth } from '../firebase/useAuth'
 import { MovementRow } from '../components/MovementRow'
 import { EmptyState } from '../components/EmptyState'
 import { Loading } from '../components/Loading'
@@ -13,7 +13,7 @@ import { currentMonthKey, nextMonthlyDate } from '../utils/date'
 import { movementsInMonth, categoryBreakdown } from '../utils/calculations'
 import { loanStatus, loanTotals, nextInstallmentDate, daysUntil } from '../utils/loanMath'
 import { nextPendingDate } from '../utils/recurring'
-import { useTheme } from '../context/ThemeContext'
+import { useTheme } from '../context/useTheme'
 import type { Currency } from '../types/models'
 
 interface DashboardAlert {

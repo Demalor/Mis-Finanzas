@@ -1,14 +1,7 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { ThemeContext, type Theme } from './useTheme'
 
-type Theme = 'light' | 'dark'
 const STORAGE_KEY = 'nummi-theme'
-
-interface ThemeContextValue {
-  theme: Theme
-  toggleTheme: () => void
-}
-
-const ThemeContext = createContext<ThemeContextValue | null>(null)
 
 function getInitialTheme(): Theme {
   const stored = localStorage.getItem(STORAGE_KEY)
@@ -30,10 +23,4 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }
 
   return <ThemeContext.Provider value={{ theme, toggleTheme }}>{children}</ThemeContext.Provider>
-}
-
-export function useTheme() {
-  const ctx = useContext(ThemeContext)
-  if (!ctx) throw new Error('useTheme debe usarse dentro de ThemeProvider')
-  return ctx
 }

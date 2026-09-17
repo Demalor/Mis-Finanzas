@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Navigate } from 'react-router-dom'
-import { useAuth } from '../firebase/AuthContext'
-import { useData } from '../context/DataContext'
+import { useAuth } from '../firebase/useAuth'
+import { useData } from '../context/useData'
 import { Loading } from './Loading'
 import { OnboardingTour } from './OnboardingTour'
 

@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useData } from '../context/DataContext'
+import { useData } from '../context/useData'
 import { EmptyState } from './EmptyState'
 import { formatAmount } from '../utils/currency'
 import { formatDateReadable } from '../utils/date'

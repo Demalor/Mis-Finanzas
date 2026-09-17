@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useData } from '../context/DataContext'
+import { useData } from '../context/useData'
 import { Card } from './Card'
 import { Button } from './Button'
 import { Modal } from './Modal'

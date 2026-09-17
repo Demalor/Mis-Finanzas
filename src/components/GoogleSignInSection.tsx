@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useAuth } from '../firebase/AuthContext'
+import { useAuth } from '../firebase/useAuth'
 import { Button } from './Button'
 import { Field, TextInput } from './FormControls'
 

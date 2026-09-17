@@ -1,4 +1,4 @@
-import { useEffect, useState, type InputHTMLAttributes, type SelectHTMLAttributes, type ReactNode } from 'react'
+import { useState, type InputHTMLAttributes, type SelectHTMLAttributes, type ReactNode } from 'react'
 import { CURRENCIES, type Currency, type MovementType } from '../types/models'
 import { currencyDecimals, formatAmountInput, parseAmountInput } from '../utils/currency'
 
@@ -59,13 +59,16 @@ export function AmountInput({ value, onChange, currency = 'COP' }: { value: numb
   const symbol = CURRENCIES.find((c) => c.code === currency)?.symbol ?? '$'
   const [text, setText] = useState(() => formatAmountInput(value, decimals))
   const [focused, setFocused] = useState(false)
+  const [synced, setSynced] = useState({ value, decimals })
 
   // Mientras se escribe se conserva el texto tal cual (para no perder el
   // separador decimal en cada tecla); solo se reformatea al perder el foco
   // o cuando el valor cambia desde afuera (ej. al limpiar el formulario).
-  useEffect(() => {
-    if (!focused) setText(formatAmountInput(value, decimals))
-  }, [value, decimals, focused])
+  // Se ajusta durante el render (no en un efecto) para no perder un frame.
+  if (!focused && (value !== synced.value || decimals !== synced.decimals)) {
+    setSynced({ value, decimals })
+    setText(formatAmountInput(value, decimals))
+  }
 
   return (
     <div className="flex items-stretch rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] focus-within:border-[var(--color-accent)] transition-colors">

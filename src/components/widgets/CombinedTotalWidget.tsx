@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useData } from '../../context/DataContext'
-import { useAuth } from '../../firebase/AuthContext'
+import { useData } from '../../context/useData'
+import { useAuth } from '../../firebase/useAuth'
 import { movementsInMonth, totalsFor, currencyOf } from '../../utils/calculations'
 import { fetchExchangeRate } from '../../utils/exchangeRate'
 import { formatAmount } from '../../utils/currency'

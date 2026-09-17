@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useData } from '../../context/DataContext'
+import { useData } from '../../context/useData'
 import { movementsInMonth, currencyOf } from '../../utils/calculations'
 import { formatAmount } from '../../utils/currency'
 import { currentMonthKey } from '../../utils/date'

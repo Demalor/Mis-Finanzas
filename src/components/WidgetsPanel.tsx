@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useAuth } from '../firebase/AuthContext'
-import { useData } from '../context/DataContext'
+import { useAuth } from '../firebase/useAuth'
+import { useData } from '../context/useData'
 import { WidgetShell } from './widgets/WidgetShell'
 import { AccountBalanceWidget } from './widgets/AccountBalanceWidget'
 import { BudgetStatusWidget } from './widgets/BudgetStatusWidget'

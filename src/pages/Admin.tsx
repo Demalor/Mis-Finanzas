@@ -4,7 +4,7 @@ import { Button } from '../components/Button'
 import { EmptyState } from '../components/EmptyState'
 import { Loading } from '../components/Loading'
 import { createInviteCode, getAllInviteCodes, getAllUsers, setUserActive } from '../firebase/admin'
-import { useAuth } from '../firebase/AuthContext'
+import { useAuth } from '../firebase/useAuth'
 import type { InviteCode, UserProfile } from '../types/models'
 import { formatDateReadable, toISODate } from '../utils/date'
 
@@ -25,6 +25,7 @@ export function Admin() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react/set-state-in-effect
     load()
   }, [])
 

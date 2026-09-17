@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useData } from '../context/DataContext'
+import { useData } from '../context/useData'
 import { Modal } from './Modal'
 import { Button } from './Button'
 import { Field, TextInput, SelectInput, AmountInput } from './FormControls'

@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Modal } from './Modal'
 import { Button } from './Button'
-import { useAuth } from '../firebase/AuthContext'
-import { useTheme } from '../context/ThemeContext'
+import { useAuth } from '../firebase/useAuth'
+import { useTheme } from '../context/useTheme'
 import { CURRENT_NOVELTIES_VERSION, NOVELTIES } from '../constants/novelties'
 
 export function NoveltiesModal() {

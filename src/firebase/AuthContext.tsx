@@ -1,6 +1,4 @@
 import {
-  createContext,
-  useContext,
   useEffect,
   useState,
   type ReactNode,
@@ -15,39 +13,14 @@ import {
   signInWithPopup,
   linkWithCredential,
   type User,
-  type AuthCredential,
 } from 'firebase/auth'
 import type { FirebaseError } from 'firebase/app'
 import { deleteDoc, doc, getDoc, runTransaction, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore/lite'
 import { auth, db } from './config'
 import type { DashboardWidgetConfig, UserProfile } from '../types/models'
+import { AuthContext, type PendingGoogleLink } from './useAuth'
 
 const googleProvider = new GoogleAuthProvider()
-
-interface PendingGoogleLink {
-  email: string
-  credential: AuthCredential
-}
-
-interface AuthContextValue {
-  user: User | null
-  profile: UserProfile | null
-  loading: boolean
-  error: string
-  pendingGoogleLink: PendingGoogleLink | null
-  signUp: (nombre: string, correo: string, password: string, inviteCode: string) => Promise<boolean>
-  signIn: (correo: string, password: string) => Promise<boolean>
-  signInWithGoogle: () => Promise<void>
-  completeGoogleLink: (password: string) => Promise<boolean>
-  signOut: () => Promise<void>
-  clearError: () => void
-  markNoveltiesSeen: (version: number) => Promise<void>
-  updateDashboardWidgets: (widgets: DashboardWidgetConfig[]) => Promise<void>
-  completeTour: () => Promise<void>
-  updateResumenFijoOculto: (oculto: boolean) => Promise<void>
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null)
 
 function mapAuthError(code: string): string {
   switch (code) {
@@ -280,10 +253,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   )
-}
-
-export function useAuth() {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth debe usarse dentro de AuthProvider')
-  return ctx
 }

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
-import { useData } from '../context/DataContext'
+import { useData } from '../context/useData'
 import { loanStatus, loanTotals, suggestedInterest } from '../utils/loanMath'
 import { Card } from '../components/Card'
 import { Button } from '../components/Button'

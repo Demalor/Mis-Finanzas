@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useData } from '../context/DataContext'
+import { useData } from '../context/useData'
 import { Card } from './Card'
 import { Button } from './Button'
 import { ConfirmDialog } from './ConfirmDialog'

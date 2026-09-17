@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Modal } from '../Modal'
 import { Button } from '../Button'
 import { Field, SelectInput, TextInput, AmountInput, TypeToggle } from '../FormControls'
-import { useData } from '../../context/DataContext'
+import { useData } from '../../context/useData'
 import { CURRENCIES } from '../../types/models'
 import type { Currency, DashboardWidgetConfig, DashboardWidgetType, MovementType } from '../../types/models'
 

@@ -1,4 +1,4 @@
-import { useTheme } from '../context/ThemeContext'
+import { useTheme } from '../context/useTheme'
 
 /** Splash de carga a pantalla completa, consistente en toda la app. */
 export function Loading({ label = 'Cargando…' }: { label?: string }) {

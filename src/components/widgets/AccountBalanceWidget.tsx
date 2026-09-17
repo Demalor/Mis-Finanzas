@@ -1,5 +1,5 @@
-import { useData } from '../../context/DataContext'
-import { useAuth } from '../../firebase/AuthContext'
+import { useData } from '../../context/useData'
+import { useAuth } from '../../firebase/useAuth'
 import { accountBalance, reservedForAccount } from '../../utils/calculations'
 import { formatAmount } from '../../utils/currency'
 import { WidgetShell } from './WidgetShell'

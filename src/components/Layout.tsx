@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { useAuth } from '../firebase/AuthContext'
-import { useTheme } from '../context/ThemeContext'
+import { useAuth } from '../firebase/useAuth'
+import { useTheme } from '../context/useTheme'
 import { NoveltiesModal } from './NoveltiesModal'
 import { Modal } from './Modal'
 

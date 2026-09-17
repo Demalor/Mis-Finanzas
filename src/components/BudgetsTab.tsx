@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import { useData } from '../context/DataContext'
-import { useAuth } from '../firebase/AuthContext'
+import { useData } from '../context/useData'
+import { useAuth } from '../firebase/useAuth'
 import { Card } from './Card'
 import { Button } from './Button'
 import { Modal } from './Modal'
