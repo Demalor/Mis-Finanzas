@@ -16,7 +16,7 @@ import { formatAmount } from '../utils/currency'
 import { totalsFor, currencyOf, accountBalance, reservedForAccount } from '../utils/calculations'
 import type { Currency, DashboardWidgetConfig, DashboardWidgetType, Movement } from '../types/models'
 
-const MAX_WIDGETS = 8
+const MAX_WIDGETS = 16
 
 const NEEDS_CONFIG: DashboardWidgetType[] = ['accountBalance', 'budgetStatus', 'categoryTotal', 'quickPay', 'savingsBox']
 
