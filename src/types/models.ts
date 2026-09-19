@@ -192,6 +192,7 @@ export interface UserProfile {
 export type DashboardWidgetType =
   | 'monthBalance'
   | 'accountBalance'
+  | 'accountFlow'
   | 'budgetStatus'
   | 'categoryTotal'
   | 'currencyBreakdown'
@@ -231,6 +232,7 @@ export interface SavingsBoxConfig {
 export type DashboardWidgetConfig =
   | { id: string; type: 'monthBalance'; currency: Currency }
   | { id: string; type: 'accountBalance'; accountId: string }
+  | { id: string; type: 'accountFlow'; accountId: string }
   | { id: string; type: 'budgetStatus'; categoryId: string }
   | { id: string; type: 'categoryTotal'; categoryId: string; movementType: MovementType }
   | { id: string; type: 'currencyBreakdown' }

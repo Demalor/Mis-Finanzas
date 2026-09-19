@@ -3,6 +3,7 @@ import type { DashboardWidgetType } from '../../types/models'
 
 const OPTIONS: { type: DashboardWidgetType; icon: string; label: string; description: string }[] = [
   { type: 'monthBalance', icon: '💰', label: 'Balance del mes', description: 'Ingresos menos gastos de este mes en una moneda.' },
+  { type: 'accountFlow', icon: '📊', label: 'Movimiento de una cuenta', description: 'Cuánto entró y salió este mes de una cuenta, y lo que le queda.' },
   { type: 'accountBalance', icon: '👛', label: 'Saldo de una cuenta', description: 'El balance de una cuenta específica.' },
   { type: 'budgetStatus', icon: '🎯', label: 'Estado de un presupuesto', description: 'Cuánto llevas gastado y disponible en una categoría.' },
   { type: 'categoryTotal', icon: '🗂️', label: 'Total de una categoría', description: 'Suma de ingresos o gastos de este mes en una categoría.' },

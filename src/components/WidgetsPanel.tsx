@@ -3,6 +3,7 @@ import { useAuth } from '../firebase/useAuth'
 import { useData } from '../context/useData'
 import { MonthBalanceWidget } from './widgets/MonthBalanceWidget'
 import { AccountBalanceWidget } from './widgets/AccountBalanceWidget'
+import { AccountFlowWidget } from './widgets/AccountFlowWidget'
 import { BudgetStatusWidget } from './widgets/BudgetStatusWidget'
 import { CategoryTotalWidget } from './widgets/CategoryTotalWidget'
 import { CurrencyBreakdownWidget } from './widgets/CurrencyBreakdownWidget'
@@ -18,7 +19,7 @@ import type { Currency, DashboardWidgetConfig, DashboardWidgetType, SavingsBoxEn
 
 const MAX_WIDGETS = 16
 
-const NEEDS_CONFIG: DashboardWidgetType[] = ['monthBalance', 'accountBalance', 'budgetStatus', 'categoryTotal', 'quickPay', 'savingsBox']
+const NEEDS_CONFIG: DashboardWidgetType[] = ['monthBalance', 'accountBalance', 'accountFlow', 'budgetStatus', 'categoryTotal', 'quickPay', 'savingsBox']
 
 // Lo que ve alguien que todavía no ha configurado nada. Es solo el punto de
 // partida: se puede quitar, cambiar de moneda o mover como cualquier otro.
@@ -185,6 +186,7 @@ export function WidgetsPanel({ preferredCurrency }: { preferredCurrency: Currenc
               )}
               {config.type === 'monthBalance' && <MonthBalanceWidget config={config} />}
               {config.type === 'accountBalance' && <AccountBalanceWidget config={config} />}
+              {config.type === 'accountFlow' && <AccountFlowWidget config={config} />}
               {config.type === 'budgetStatus' && <BudgetStatusWidget config={config} />}
               {config.type === 'categoryTotal' && <CategoryTotalWidget config={config} />}
               {config.type === 'currencyBreakdown' && <CurrencyBreakdownWidget />}

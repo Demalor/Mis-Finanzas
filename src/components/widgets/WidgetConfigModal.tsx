@@ -9,6 +9,7 @@ import type { Currency, DashboardWidgetConfig, DashboardWidgetType, MovementType
 const TITLES: Record<DashboardWidgetType, string> = {
   monthBalance: 'Balance del mes',
   accountBalance: 'Saldo de una cuenta',
+  accountFlow: 'Movimiento de una cuenta',
   budgetStatus: 'Estado de un presupuesto',
   categoryTotal: 'Total de una categoría',
   currencyBreakdown: 'Balance por moneda',
@@ -45,7 +46,9 @@ export function WidgetConfigModal({
   const [mbCurrency, setMbCurrency] = useState<Currency>(enModo('monthBalance')?.currency ?? 'COP')
 
   // accountBalance
-  const [accountId, setAccountId] = useState(enModo('accountBalance')?.accountId ?? accounts[0]?.id ?? '')
+  const [accountId, setAccountId] = useState(
+    enModo('accountBalance')?.accountId ?? enModo('accountFlow')?.accountId ?? accounts[0]?.id ?? ''
+  )
 
   // budgetStatus
   const [budgetCategoryId, setBudgetCategoryId] = useState(
@@ -84,7 +87,7 @@ export function WidgetConfigModal({
     const id = config?.id ?? crypto.randomUUID()
     if (type === 'monthBalance') {
       onSave({ id, type, currency: mbCurrency })
-    } else if (type === 'accountBalance') {
+    } else if (type === 'accountBalance' || type === 'accountFlow') {
       if (!accountId) return
       onSave({ id, type, accountId })
     } else if (type === 'budgetStatus') {
@@ -128,7 +131,7 @@ export function WidgetConfigModal({
 
   const canSave =
     type === 'monthBalance' ||
-    (type === 'accountBalance' && !!accountId) ||
+    ((type === 'accountBalance' || type === 'accountFlow') && !!accountId) ||
     (type === 'budgetStatus' && !!budgetCategoryId) ||
     (type === 'categoryTotal' && !!ctCategoryId) ||
     (type === 'quickPay' && qpDescription.trim() !== '' && qpAmount > 0 && !!qpCategoryId) ||
@@ -148,7 +151,7 @@ export function WidgetConfigModal({
         </Field>
       )}
 
-      {type === 'accountBalance' && (
+      {(type === 'accountBalance' || type === 'accountFlow') && (
         <Field label="Cuenta">
           {accounts.length === 0 ? (
             <p className="text-[var(--fs-sm)] text-[var(--color-text-secondary)]">Todavía no tienes cuentas creadas.</p>
