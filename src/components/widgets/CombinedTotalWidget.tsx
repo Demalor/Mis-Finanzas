@@ -72,9 +72,9 @@ export function CombinedTotalWidget() {
   return (
     <WidgetShell
       icon="💱"
-      label="Total combinado"
+      label="Balance del mes"
       value={loadingEstimate ? 'Calculando…' : combinedEstimate !== null ? formatAmount(combinedEstimate, displayCurrency) : '—'}
-      sub="Con la tasa del día"
+      sub="Todas las monedas juntas · tasa de hoy"
     />
   )
 }

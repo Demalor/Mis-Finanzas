@@ -21,7 +21,7 @@ export function CurrencyBreakdownWidget() {
 
   return (
     <Card padding="sm" className="min-h-[6rem] flex flex-col justify-center gap-1">
-      <div className="text-[var(--fs-xs)] font-medium text-[var(--color-text-secondary)]">Balance por moneda</div>
+      <div className="text-[var(--fs-xs)] font-medium text-[var(--color-text-secondary)]">Balance del mes por moneda</div>
       {currenciesPresent.map((currency) => {
         const t = totalsFor(monthMovements.filter((m) => currencyOf(m, accountCurrency) === currency))
         return (

@@ -78,6 +78,35 @@ export function accountBalance(account: Account, movements: Movement[], transfer
   return ingresos - gastos - salidas + entradas
 }
 
+// Si el presupuesto aplica al mes que se está viendo. 'solo-este-mes' (o sin
+// vigencia, presupuestos viejos) es exacto; 'cada-mes' y 'rango' cubren desde
+// su mes de inicio hasta `hasta` (o para siempre si no tiene).
+export function budgetAplicaEnMes(budget: Budget, month: string): boolean {
+  const vigencia = budget.vigencia ?? 'solo-este-mes'
+  if (vigencia === 'solo-este-mes') return budget.month === month
+  return budget.month <= month && (!budget.hasta || month <= budget.hasta)
+}
+
+// Todos los presupuestos de una categoría que aplican a este mes, en esta
+// moneda — puede haber más de uno si además hay uno de otra moneda o si
+// (por error) se solapan dos con la misma. `budgetForCategory` elige uno.
+export function budgetsApplicableTo(budgets: Budget[], categoryId: string, month: string, currency: Currency): Budget[] {
+  return budgets.filter(
+    (b) => b.categoryId === categoryId && (b.currency ?? 'COP') === currency && budgetAplicaEnMes(b, month)
+  )
+}
+
+// El más específico gana: uno de un solo mes manda sobre uno recurrente o de
+// rango que también cubra ese mes; entre recurrentes/rango, el que empezó
+// más tarde (el más reciente).
+export function budgetForCategory(budgets: Budget[], categoryId: string, month: string, currency: Currency): Budget | undefined {
+  const candidatos = budgetsApplicableTo(budgets, categoryId, month, currency)
+  if (candidatos.length === 0) return undefined
+  const exacto = candidatos.find((b) => (b.vigencia ?? 'solo-este-mes') === 'solo-este-mes')
+  if (exacto) return exacto
+  return [...candidatos].sort((a, b) => b.month.localeCompare(a.month))[0]
+}
+
 export interface BudgetStatus {
   spent: number
   available: number
@@ -86,13 +115,23 @@ export interface BudgetStatus {
   nearLimit: boolean
 }
 
+// `movements` va SIN filtrar por mes: un presupuesto de 'rango' necesita ver
+// varios meses para acumular. `month` es el mes que se está mostrando.
 export function budgetStatusFor(
   budget: Budget,
-  monthMovements: Movement[],
+  movements: Movement[],
   accountCurrency: Map<string, Currency>,
-  currency: Currency
+  currency: Currency,
+  month: string
 ): BudgetStatus {
-  const spent = monthMovements
+  const esRango = (budget.vigencia ?? 'solo-este-mes') === 'rango'
+  const desde = esRango ? budget.month : month
+  const hasta = esRango && budget.hasta && budget.hasta < month ? budget.hasta : month
+  const enVentana = movements.filter((m) => {
+    const mk = toMonthKey(m.date)
+    return mk >= desde && mk <= hasta
+  })
+  const spent = enVentana
     .filter((m) => m.categoryId === budget.categoryId && m.type === 'gasto' && currencyOf(m, accountCurrency) === currency)
     .reduce((s, m) => s + m.amount, 0)
   const available = budget.amount - spent

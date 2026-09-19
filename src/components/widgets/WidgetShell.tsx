@@ -7,15 +7,27 @@ export function WidgetShell({
   value,
   sub,
   tone,
+  onClick,
 }: {
   icon?: string
   label: string
   value: string
   sub?: ReactNode
   tone?: 'income' | 'expense'
+  // Solo para un widget que lleva a otro sitio (ej. "crea tu primer
+  // presupuesto"): el resto usa sus propios botones para aportar/registrar.
+  onClick?: () => void
 }) {
   return (
-    <Card padding="sm" className="min-h-[6rem] flex flex-col justify-center gap-1">
+    <Card
+      padding="sm"
+      className="min-h-[6rem] flex flex-col justify-center gap-1 text-left"
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => (e.key === 'Enter' || e.key === ' ') && onClick() : undefined}
+      style={onClick ? { cursor: 'pointer' } : undefined}
+    >
       <div className="flex items-center gap-1.5 text-[var(--fs-xs)] font-medium text-[var(--color-text-secondary)] min-w-0">
         {icon && <span className="shrink-0">{icon}</span>}
         <span className="truncate">{label}</span>

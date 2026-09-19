@@ -19,7 +19,7 @@ export function AccountBalanceWidget({ config }: { config: { accountId: string }
       icon="👛"
       label={account.nombre}
       value={formatAmount(available, account.moneda)}
-      sub={reserved > 0 ? `Apartado: ${formatAmount(reserved, account.moneda)}` : undefined}
+      sub={reserved > 0 ? `Disponible · apartado ${formatAmount(reserved, account.moneda)}` : undefined}
       tone={available < 0 ? 'expense' : undefined}
     />
   )

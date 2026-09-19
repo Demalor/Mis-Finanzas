@@ -135,12 +135,22 @@ export interface RecurringMovement {
   diasAvisoPago?: number // días de anticipación para el aviso, default 3
 }
 
+// 'solo-este-mes' (o ausente, para compatibilidad con presupuestos viejos):
+// el límite aplica solo al mes en que se creó.
+// 'cada-mes': se hereda hacia adelante desde `month` (hasta `hasta`, si
+// tiene); el límite se mide mes a mes.
+// 'rango': de `month` a `hasta`; el límite se mide sobre el ACUMULADO de
+// todo el rango, no por mes — para un tope de un objetivo o un periodo.
+export type BudgetVigencia = 'solo-este-mes' | 'cada-mes' | 'rango'
+
 export interface Budget {
   id: string
   categoryId: string
-  month: string // formato "YYYY-MM"
+  month: string // formato "YYYY-MM": mes de creación, o inicio si hay rango
   amount: number
   currency?: Currency // moneda del límite; los presupuestos viejos se asumen en COP
+  vigencia?: BudgetVigencia // ausente = 'solo-este-mes'
+  hasta?: string // "YYYY-MM": fin de la repetición o del rango
 }
 
 // ---------- Proyectos ----------

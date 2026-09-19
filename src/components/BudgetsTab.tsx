@@ -7,12 +7,24 @@ import { Modal } from './Modal'
 import { ConfirmDialog } from './ConfirmDialog'
 import { EmptyState } from './EmptyState'
 import { MonthSelector } from './MonthSelector'
-import { Field, SelectInput, AmountInput } from './FormControls'
+import { Field, SelectInput, AmountInput, TextInput } from './FormControls'
 import { formatAmount } from '../utils/currency'
 import { currentMonthKey } from '../utils/date'
-import { movementsInMonth, budgetStatusFor } from '../utils/calculations'
+import { budgetStatusFor, budgetAplicaEnMes } from '../utils/calculations'
 import { CURRENCIES } from '../types/models'
-import type { Budget, Currency } from '../types/models'
+import { monthLabelShort } from '../utils/date'
+import type { Budget, BudgetVigencia, Currency } from '../types/models'
+
+// Texto corto de cómo aplica el presupuesto, para que no haya que adivinar
+// si "100" es de este mes o se viene repitiendo.
+function vigenciaLabel(b: Budget, month: string): string {
+  const vigencia = b.vigencia ?? 'solo-este-mes'
+  if (vigencia === 'solo-este-mes') return 'solo este mes'
+  if (vigencia === 'cada-mes') return b.hasta ? `cada mes hasta ${monthLabelShort(b.hasta)}` : 'cada mes'
+  // rango: acumulado, no por mes — vale la pena decir desde cuándo si no se está viendo el mes de inicio
+  const desde = b.month !== month ? `desde ${monthLabelShort(b.month)} ` : ''
+  return b.hasta ? `${desde}rango hasta ${monthLabelShort(b.hasta)}` : `${desde}rango abierto`
+}
 
 export function BudgetsTab() {
   const { budgets, categories, movements, accounts, upsertBudget, deleteBudget } = useData()
@@ -45,9 +57,9 @@ export function BudgetsTab() {
   const expenseCategories = categories.filter((c) => c.type === 'gasto')
   // Sin filtrar por moneda: si una categoría quedó con dos presupuestos en
   // monedas distintas, esconder uno hace que parezca que la app está mal.
-  const monthBudgets = budgets.filter((b) => b.month === month)
-  const monthMovements = useMemo(() => movementsInMonth(movements, month), [movements, month])
-
+  // Incluye los de vigencia 'cada-mes' y 'rango' que cubren este mes, aunque
+  // hayan empezado antes.
+  const monthBudgets = budgets.filter((b) => budgetAplicaEnMes(b, month))
   const categoriesWithoutBudget = expenseCategories.filter((c) => !monthBudgets.some((b) => b.categoryId === c.id))
   const duplicadas = monthBudgets.filter((b, i) => monthBudgets.findIndex((o) => o.categoryId === b.categoryId) !== i)
 
@@ -81,14 +93,16 @@ export function BudgetsTab() {
           {monthBudgets.map((b) => {
             const category = categories.find((c) => c.id === b.categoryId)
             const moneda = budgetCurrency(b)
-            const { spent, available, pct, overBudget, nearLimit } = budgetStatusFor(b, monthMovements, accountCurrency, moneda)
+            const { spent, available, pct, overBudget, nearLimit } = budgetStatusFor(b, movements, accountCurrency, moneda, month)
 
             return (
               <Card key={b.id} padding="md">
                 <div className="flex items-center justify-between mb-3">
                   <span className="font-semibold text-[var(--fs-md)] min-w-0 truncate">
                     {category?.icon} {category?.name ?? 'Categoría eliminada'}{' '}
-                    <span className="font-normal text-[var(--fs-xs)] text-[var(--color-text-secondary)]">{moneda}</span>
+                    <span className="font-normal text-[var(--fs-xs)] text-[var(--color-text-secondary)]">
+                      {moneda} · {vigenciaLabel(b, month)}
+                    </span>
                   </span>
                   <div className="flex items-center shrink-0">
                     <button
@@ -161,8 +175,16 @@ export function BudgetsTab() {
           setCreating(false)
           setEditing(null)
         }}
-        onSave={async (categoryId, amount, budgetCurrency) => {
-          await upsertBudget({ id: editing?.id, categoryId, month, amount, currency: budgetCurrency })
+        onSave={async (categoryId, amount, budgetCurrency, vigencia, hasta) => {
+          await upsertBudget({
+            id: editing?.id,
+            categoryId,
+            month: editing?.month ?? month,
+            amount,
+            currency: budgetCurrency,
+            vigencia,
+            hasta,
+          })
           setCreating(false)
           setEditing(null)
         }}
@@ -200,13 +222,15 @@ function BudgetFormModal({
   budget?: Budget
   categories: { id: string; name: string; icon: string }[]
   onClose: () => void
-  onSave: (categoryId: string, amount: number, currency: Currency) => void
+  onSave: (categoryId: string, amount: number, currency: Currency, vigencia: BudgetVigencia, hasta?: string) => void
 }) {
   const [categoryId, setCategoryId] = useState(budget?.categoryId ?? '')
   const [amount, setAmount] = useState(budget?.amount ?? 0)
   // La moneda era un texto heredado del selector de arriba y se pasaba por
   // alto: un presupuesto en la moneda equivocada nunca cuenta ningún gasto.
   const [budgetCurrency, setBudgetCurrency] = useState<Currency>(budget?.currency ?? currency)
+  const [vigencia, setVigencia] = useState<BudgetVigencia>(budget?.vigencia ?? 'solo-este-mes')
+  const [hasta, setHasta] = useState(budget?.hasta ?? '')
 
   const effectiveId = categoryId || categories[0]?.id || ''
 
@@ -238,14 +262,41 @@ function BudgetFormModal({
               ))}
             </SelectInput>
           </Field>
-          <Field label="Presupuesto mensual" hint="El límite aplica solo a este mes calendario.">
+          <Field
+            label="¿Cómo se maneja este presupuesto?"
+            hint={
+              vigencia === 'solo-este-mes'
+                ? 'Aplica solo a este mes; el que viene arranca sin presupuesto.'
+                : vigencia === 'cada-mes'
+                  ? 'Se repite cada mes con el mismo límite, hasta que lo edites o borres.'
+                  : 'Un solo tope que se va gastando a lo largo del periodo (no se reinicia cada mes) — para un objetivo o un proyecto puntual.'
+            }
+          >
+            <SelectInput value={vigencia} onChange={(e) => setVigencia(e.target.value as BudgetVigencia)}>
+              <option value="solo-este-mes">Fijo, solo este mes</option>
+              <option value="cada-mes">Fijo cada mes</option>
+              <option value="rango">Un tope hasta terminar un periodo</option>
+            </SelectInput>
+          </Field>
+          {(vigencia === 'cada-mes' || vigencia === 'rango') && (
+            <Field
+              label={vigencia === 'rango' ? 'Hasta qué mes (obligatorio)' : 'Hasta qué mes (opcional)'}
+              hint={vigencia === 'cada-mes' ? 'Déjalo vacío para que se repita sin fecha de fin.' : undefined}
+            >
+              <TextInput type="month" value={hasta} onChange={(e) => setHasta(e.target.value)} min={month} />
+            </Field>
+          )}
+          <Field
+            label={vigencia === 'rango' ? 'Tope total del periodo' : 'Presupuesto mensual'}
+            hint={vigencia === 'rango' ? 'Se acumula desde el inicio hasta el fin del rango, no se reinicia cada mes.' : undefined}
+          >
             <AmountInput value={amount} onChange={setAmount} currency={budgetCurrency} />
           </Field>
           <Button
             className="w-full"
             size="lg"
-            disabled={amount <= 0 || !effectiveId}
-            onClick={() => onSave(effectiveId, amount, budgetCurrency)}
+            disabled={amount <= 0 || !effectiveId || (vigencia === 'rango' && !hasta)}
+            onClick={() => onSave(effectiveId, amount, budgetCurrency, vigencia, hasta || undefined)}
           >
             {budget ? 'Guardar cambios' : 'Guardar presupuesto'}
           </Button>
