@@ -75,11 +75,11 @@ test('A NO puede cambiar su propio activo', async () => {
   await assertFails(updateDoc(doc(as(A), 'usuarios', A), { activo: false }))
 })
 
-test('A NO puede cambiar su nombre (solo 5 campos permitidos)', async () => {
+test('A NO puede cambiar su nombre (solo 6 campos permitidos)', async () => {
   await assertFails(updateDoc(doc(as(A), 'usuarios', A), { nombre: 'Otro' }))
 })
 
-test('A SÍ puede actualizar ultimaConexion / novedadesVistas / dashboardWidgets / tourCompletado / resumenFijoOculto', async () => {
+test('A SÍ puede actualizar ultimaConexion / novedadesVistas / dashboardWidgets / tourCompletado / resumenFijoOculto / monedaPreferida', async () => {
   await assertSucceeds(updateDoc(doc(as(A), 'usuarios', A), { ultimaConexion: 123 }))
   await assertSucceeds(updateDoc(doc(as(A), 'usuarios', A), { novedadesVistas: 3 }))
   await assertSucceeds(
@@ -87,6 +87,7 @@ test('A SÍ puede actualizar ultimaConexion / novedadesVistas / dashboardWidgets
   )
   await assertSucceeds(updateDoc(doc(as(A), 'usuarios', A), { tourCompletado: true }))
   await assertSucceeds(updateDoc(doc(as(A), 'usuarios', A), { resumenFijoOculto: true }))
+  await assertSucceeds(updateDoc(doc(as(A), 'usuarios', A), { monedaPreferida: 'CHF' }))
 })
 
 test('admin SÍ puede desactivar a un miembro', async () => {

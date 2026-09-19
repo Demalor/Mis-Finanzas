@@ -1,4 +1,4 @@
-import type { Account, Budget, Movement, Category, Currency, Transfer, DashboardWidgetConfig } from '../types/models'
+import type { Account, Budget, Movement, Category, Currency, Transfer, DashboardWidgetConfig, SavingsBoxConfig } from '../types/models'
 import { CURRENCIES } from '../types/models'
 import { toMonthKey } from './date'
 
@@ -8,6 +8,27 @@ export function reservedForAccount(widgets: DashboardWidgetConfig[], accountId: 
   return widgets
     .filter((w) => w.type === 'savingsBox' && w.box.accountId === accountId)
     .reduce((sum, w) => sum + (w.type === 'savingsBox' ? w.box.current : 0), 0)
+}
+
+export interface SavingsBoxItem {
+  id: string
+  box: SavingsBoxConfig
+}
+
+// Las cajas de ahorro no son una colección aparte: viven como widgets dentro
+// del perfil. El id del widget es estable, así que sirve para seleccionarlas.
+export function savingsBoxesOf(widgets: DashboardWidgetConfig[]): SavingsBoxItem[] {
+  return widgets.flatMap((w) => (w.type === 'savingsBox' ? [{ id: w.id, box: w.box }] : []))
+}
+
+// Cuánto tenía la caja al cerrar ese mes. El historial empezó a registrarse
+// después de que las cajas ya existían, así que se reconstruye hacia atrás
+// desde el monto actual (que sí es real) restando los movimientos posteriores.
+export function savingsBoxBalanceAt(box: SavingsBoxConfig, monthKey: string): number {
+  const posteriores = (box.history ?? [])
+    .filter((e) => toMonthKey(e.date) > monthKey)
+    .reduce((sum, e) => sum + e.delta, 0)
+  return box.current - posteriores
 }
 
 // La moneda de un movimiento es la de su cuenta. Los movimientos sin cuenta
@@ -79,6 +100,51 @@ export function budgetStatusFor(
   const overBudget = spent > budget.amount
   const nearLimit = !overBudget && pct >= 80
   return { spent, available, pct, overBudget, nearLimit }
+}
+
+// Un desglose genérico para las gráficas de torta: la entidad puede ser una
+// cuenta, un origen, lo que sea. El color lo pone quien lo dibuja.
+export interface AmountByKey {
+  id: string
+  label: string
+  total: number
+}
+
+function ordenarDesc(map: Map<string, { label: string; total: number }>): AmountByKey[] {
+  return Array.from(map.entries())
+    .map(([id, v]) => ({ id, label: v.label, total: v.total }))
+    .sort((a, b) => b.total - a.total)
+}
+
+// De qué cuentas salieron (o entraron) estos movimientos. Sirve cuando ya se
+// filtró por una categoría concreta y la torta por categorías no aporta nada.
+export function accountBreakdown(movements: Movement[], accounts: Account[], type: 'gasto' | 'ingreso'): AmountByKey[] {
+  const map = new Map<string, { label: string; total: number }>()
+  for (const m of movements) {
+    if (m.type !== type) continue
+    const id = m.accountId ?? 'sin-cuenta'
+    const label = accounts.find((a) => a.id === m.accountId)?.nombre ?? 'Sin cuenta'
+    const entry = map.get(id) ?? { label, total: 0 }
+    entry.total += m.amount
+    map.set(id, entry)
+  }
+  return ordenarDesc(map)
+}
+
+// De dónde llegó la plata que hay en una caja de ahorro. Solo cuentan los
+// aportes (delta > 0); los aportes anteriores a que se registrara el origen
+// quedan agrupados como "Sin registrar".
+export function savingsOriginBreakdown(box: SavingsBoxConfig, accounts: Account[]): AmountByKey[] {
+  const map = new Map<string, { label: string; total: number }>()
+  for (const e of box.history ?? []) {
+    if (e.delta <= 0) continue
+    const id = e.accountId ?? 'sin-registrar'
+    const label = accounts.find((a) => a.id === e.accountId)?.nombre ?? 'Sin registrar'
+    const entry = map.get(id) ?? { label, total: 0 }
+    entry.total += e.delta
+    map.set(id, entry)
+  }
+  return ordenarDesc(map)
 }
 
 export interface CategoryBreakdownItem {

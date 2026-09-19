@@ -168,7 +168,7 @@ export function Dashboard() {
       )}
 
       {/* Resumen del mes (una celda más) + panel de widgets, todo en una sola grilla */}
-      <WidgetsPanel preferredCurrency={preferredCurrency} monthMovements={monthMovements} accountCurrency={accountCurrency} />
+      <WidgetsPanel preferredCurrency={preferredCurrency} />
 
       {/* Resumen por categoría */}
       {!profile?.resumenFijoOculto && (

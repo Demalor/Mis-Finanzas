@@ -28,7 +28,7 @@ service cloud.firestore {
       // El propio usuario solo puede tocar estos campos de su perfil.
       allow update: if request.auth != null && request.auth.uid == uid
         && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(["ultimaConexion", "novedadesVistas", "dashboardWidgets", "tourCompletado", "resumenFijoOculto"]);
+             .hasOnly(["ultimaConexion", "novedadesVistas", "dashboardWidgets", "tourCompletado", "resumenFijoOculto", "monedaPreferida"]);
 
       // El admin solo puede cambiar 'activo', y nunca de otro admin.
       allow update: if esAdmin()

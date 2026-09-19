@@ -3,9 +3,9 @@ import { Modal } from './Modal'
 import { Button } from './Button'
 import { Field, TextInput, TypeToggle } from './FormControls'
 import type { Category, MovementType } from '../types/models'
+import { COLOR_OPTIONS } from '../utils/colors'
 
 const ICON_OPTIONS = ['🍽️', '🏠', '🚌', '💡', '🩺', '📚', '🎬', '🛍️', '💳', '📦', '💼', '🏦', '🧰', '📈', '🎁', '🐾', '✈️', '🎓']
-const COLOR_OPTIONS = ['#7C3AED', '#FF9500', '#34C759', '#007AFF', '#FF3B30', '#5856D6', '#32ADE6', '#FF2D55', '#8E8E93', '#AF52DE']
 
 export function CategoryFormModal({
   open,

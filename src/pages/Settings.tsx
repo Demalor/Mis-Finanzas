@@ -4,6 +4,8 @@ import { Card } from '../components/Card'
 import { Button } from '../components/Button'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { useData } from '../context/useData'
+import { SelectInput } from '../components/FormControls'
+import { CURRENCIES, type Currency } from '../types/models'
 import { useAuth } from '../firebase/useAuth'
 import { useTheme } from '../context/useTheme'
 import { exportBackup, restoreBackup, validateBackup, wipeAllData } from '../firebase/repo'
@@ -11,7 +13,7 @@ import { formatDateReadable, todayISO } from '../utils/date'
 
 export function Settings() {
   const { movements, categories, refresh } = useData()
-  const { user, profile, signOut, updateResumenFijoOculto } = useAuth()
+  const { user, profile, signOut, updateResumenFijoOculto, updateMonedaPreferida } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -90,12 +92,33 @@ export function Settings() {
         </Button>
       </Card>
 
+      <Card padding="lg" className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="font-semibold text-[var(--fs-md)]">Moneda principal</div>
+          <div className="text-[var(--fs-sm)] text-[var(--color-text-secondary)]">
+            La que se usa por defecto en el Inicio, el Resumen y los presupuestos nuevos.
+          </div>
+        </div>
+        <SelectInput
+          aria-label="Moneda principal"
+          className="md:w-56 shrink-0"
+          value={profile?.monedaPreferida ?? 'COP'}
+          onChange={(e) => updateMonedaPreferida(e.target.value as Currency)}
+        >
+          {CURRENCIES.map((c) => (
+            <option key={c.code} value={c.code}>
+              {c.label} ({c.code})
+            </option>
+          ))}
+        </SelectInput>
+      </Card>
+
       {profile?.resumenFijoOculto && (
         <Card padding="lg" className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
             <div className="font-semibold text-[var(--fs-md)]">Resumen en Inicio</div>
             <div className="text-[var(--fs-sm)] text-[var(--color-text-secondary)]">
-              Ocultaste el "Balance en COP" y "Gastos por categoría" del Inicio.
+              Ocultaste la tarjeta "Gastos por categoría" del Inicio.
             </div>
           </div>
           <Button variant="secondary" onClick={() => updateResumenFijoOculto(false)}>

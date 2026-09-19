@@ -4,22 +4,26 @@ import { useAuth } from '../firebase/useAuth'
 import { Card } from './Card'
 import { Button } from './Button'
 import { Modal } from './Modal'
+import { ConfirmDialog } from './ConfirmDialog'
 import { EmptyState } from './EmptyState'
 import { MonthSelector } from './MonthSelector'
-import { Segmented } from './Segmented'
 import { Field, SelectInput, AmountInput } from './FormControls'
 import { formatAmount } from '../utils/currency'
 import { currentMonthKey } from '../utils/date'
 import { movementsInMonth, budgetStatusFor } from '../utils/calculations'
 import { CURRENCIES } from '../types/models'
-import type { Currency } from '../types/models'
+import type { Budget, Currency } from '../types/models'
 
 export function BudgetsTab() {
   const { budgets, categories, movements, accounts, upsertBudget, deleteBudget } = useData()
   const { profile } = useAuth()
   const [month, setMonth] = useState(currentMonthKey())
-  const [currency, setCurrency] = useState<Currency>(profile?.monedaPreferida ?? 'COP')
+  // null = la persona no ha elegido moneda todavía; se deduce de su perfil o
+  // de sus cuentas. Sembrarlo en 'COP' hacía que todo naciera en pesos aunque
+  // no tuviera una sola cuenta en pesos.
   const [creating, setCreating] = useState(false)
+  const [editing, setEditing] = useState<Budget | null>(null)
+  const [toDelete, setToDelete] = useState<Budget | null>(null)
 
   const accountCurrency = useMemo(() => new Map(accounts.map((a) => [a.id, a.moneda])), [accounts])
 
@@ -34,27 +38,24 @@ export function BudgetsTab() {
     return list.length > 0 ? list : (['COP'] as Currency[])
   }, [accounts, budgets])
 
-  const activeCurrency: Currency = availableCurrencies.includes(currency) ? currency : availableCurrencies[0]
+  const monedaSugerida: Currency = profile?.monedaPreferida ?? accounts[0]?.moneda ?? 'COP'
+  // Moneda con la que nace un presupuesto nuevo si no se toca el campo.
+  const activeCurrency: Currency = availableCurrencies.includes(monedaSugerida) ? monedaSugerida : availableCurrencies[0]
 
   const expenseCategories = categories.filter((c) => c.type === 'gasto')
-  const monthBudgets = budgets.filter((b) => b.month === month && budgetCurrency(b) === activeCurrency)
+  // Sin filtrar por moneda: si una categoría quedó con dos presupuestos en
+  // monedas distintas, esconder uno hace que parezca que la app está mal.
+  const monthBudgets = budgets.filter((b) => b.month === month)
   const monthMovements = useMemo(() => movementsInMonth(movements, month), [movements, month])
 
   const categoriesWithoutBudget = expenseCategories.filter((c) => !monthBudgets.some((b) => b.categoryId === c.id))
+  const duplicadas = monthBudgets.filter((b, i) => monthBudgets.findIndex((o) => o.categoryId === b.categoryId) !== i)
 
   return (
     <div className="flex flex-col gap-[var(--sp-5)]">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-[var(--sp-3)]">
         <p className="text-[var(--color-text-secondary)] text-[var(--fs-sm)]">Define un límite mensual por categoría</p>
         <div className="flex flex-wrap items-center gap-[var(--sp-3)]">
-          {availableCurrencies.length > 1 && (
-            <Segmented
-              aria-label="Moneda del presupuesto"
-              options={availableCurrencies.map((code) => ({ value: code, label: code }))}
-              value={activeCurrency}
-              onChange={setCurrency}
-            />
-          )}
           <MonthSelector month={month} onChange={setMonth} className="flex-1 min-w-[11rem] md:flex-none md:w-fit" />
           <Button onClick={() => setCreating(true)} disabled={categoriesWithoutBudget.length === 0} className="shrink-0">
             + Nuevo
@@ -62,10 +63,16 @@ export function BudgetsTab() {
         </div>
       </div>
 
+      {duplicadas.length > 0 && (
+        <p className="px-[var(--sp-3)] py-[var(--sp-2)] rounded-[var(--radius-md)] text-[var(--fs-sm)] font-medium" style={{ background: 'var(--color-warn-soft)', color: 'var(--color-warn)' }}>
+          ⚠️ Hay categorías con más de un presupuesto este mes, en monedas distintas. El widget del Inicio solo puede mostrar uno: borra el que no uses.
+        </p>
+      )}
+
       {monthBudgets.length === 0 ? (
         <EmptyState
           icon="🎯"
-          title={availableCurrencies.length > 1 ? `Sin presupuestos en ${activeCurrency} este mes` : 'Aún no tienes presupuestos este mes'}
+          title="Aún no tienes presupuestos este mes"
           message="Crea un presupuesto para controlar tus gastos por categoría."
           action={<Button onClick={() => setCreating(true)}>Crear presupuesto</Button>}
         />
@@ -73,22 +80,33 @@ export function BudgetsTab() {
         <div className="card-grid">
           {monthBudgets.map((b) => {
             const category = categories.find((c) => c.id === b.categoryId)
-            const { spent, available, pct, overBudget, nearLimit } = budgetStatusFor(b, monthMovements, accountCurrency, activeCurrency)
+            const moneda = budgetCurrency(b)
+            const { spent, available, pct, overBudget, nearLimit } = budgetStatusFor(b, monthMovements, accountCurrency, moneda)
 
             return (
               <Card key={b.id} padding="md">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="font-semibold text-[var(--fs-md)]">
-                    {category?.icon} {category?.name ?? 'Categoría eliminada'}
+                  <span className="font-semibold text-[var(--fs-md)] min-w-0 truncate">
+                    {category?.icon} {category?.name ?? 'Categoría eliminada'}{' '}
+                    <span className="font-normal text-[var(--fs-xs)] text-[var(--color-text-secondary)]">{moneda}</span>
                   </span>
-                  <button
-                    onClick={() => deleteBudget(b.id)}
-                    aria-label="Eliminar presupuesto"
-                    className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-[var(--color-expense-soft)] text-[var(--fs-md)]"
-                    style={{ color: 'var(--color-expense)' }}
-                  >
-                    🗑️
-                  </button>
+                  <div className="flex items-center shrink-0">
+                    <button
+                      onClick={() => setEditing(b)}
+                      aria-label="Editar presupuesto"
+                      className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-[var(--color-muted)] text-[var(--fs-md)]"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      onClick={() => setToDelete(b)}
+                      aria-label="Eliminar presupuesto"
+                      className="w-11 h-11 flex items-center justify-center rounded-full hover:bg-[var(--color-expense-soft)] text-[var(--fs-md)]"
+                      style={{ color: 'var(--color-expense)' }}
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 </div>
                 <div className="h-3 bg-[var(--color-muted)] rounded-full overflow-hidden mb-3">
                   <div
@@ -102,16 +120,16 @@ export function BudgetsTab() {
                 <div className="grid grid-cols-3 text-center gap-2 text-[var(--fs-sm)]">
                   <div>
                     <div className="text-[var(--color-text-secondary)]">Gastado</div>
-                    <div className="font-semibold">{formatAmount(spent, activeCurrency)}</div>
+                    <div className="font-semibold">{formatAmount(spent, moneda)}</div>
                   </div>
                   <div>
                     <div className="text-[var(--color-text-secondary)]">Presupuesto</div>
-                    <div className="font-semibold">{formatAmount(b.amount, activeCurrency)}</div>
+                    <div className="font-semibold">{formatAmount(b.amount, moneda)}</div>
                   </div>
                   <div>
                     <div className="text-[var(--color-text-secondary)]">Disponible</div>
                     <div className="font-semibold" style={{ color: available < 0 ? 'var(--color-expense)' : 'var(--color-income)' }}>
-                      {formatAmount(available, activeCurrency)}
+                      {formatAmount(available, moneda)}
                     </div>
                   </div>
                 </div>
@@ -131,25 +149,46 @@ export function BudgetsTab() {
         </div>
       )}
 
-      <NewBudgetModal
-        open={creating}
+      <BudgetFormModal
+        key={editing?.id ?? 'new'}
+        open={creating || !!editing}
         month={month}
         currency={activeCurrency}
-        categories={categoriesWithoutBudget}
-        onClose={() => setCreating(false)}
-        onSave={async (categoryId, amount) => {
-          await upsertBudget({ categoryId, month, amount, currency: activeCurrency })
+        availableCurrencies={availableCurrencies}
+        budget={editing ?? undefined}
+        categories={editing ? expenseCategories.filter((c) => c.id === editing.categoryId) : categoriesWithoutBudget}
+        onClose={() => {
           setCreating(false)
+          setEditing(null)
+        }}
+        onSave={async (categoryId, amount, budgetCurrency) => {
+          await upsertBudget({ id: editing?.id, categoryId, month, amount, currency: budgetCurrency })
+          setCreating(false)
+          setEditing(null)
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!toDelete}
+        title="Eliminar presupuesto"
+        message="Se borra el límite de esta categoría para este mes. Tus movimientos no se tocan."
+        confirmLabel="Eliminar"
+        onCancel={() => setToDelete(null)}
+        onConfirm={async () => {
+          if (toDelete) await deleteBudget(toDelete.id)
+          setToDelete(null)
         }}
       />
     </div>
   )
 }
 
-function NewBudgetModal({
+function BudgetFormModal({
   open,
   month,
   currency,
+  availableCurrencies,
+  budget,
   categories,
   onClose,
   onSave,
@@ -157,24 +196,29 @@ function NewBudgetModal({
   open: boolean
   month: string
   currency: Currency
+  availableCurrencies: Currency[]
+  budget?: Budget
   categories: { id: string; name: string; icon: string }[]
   onClose: () => void
-  onSave: (categoryId: string, amount: number) => void
+  onSave: (categoryId: string, amount: number, currency: Currency) => void
 }) {
-  const [categoryId, setCategoryId] = useState('')
-  const [amount, setAmount] = useState(0)
+  const [categoryId, setCategoryId] = useState(budget?.categoryId ?? '')
+  const [amount, setAmount] = useState(budget?.amount ?? 0)
+  // La moneda era un texto heredado del selector de arriba y se pasaba por
+  // alto: un presupuesto en la moneda equivocada nunca cuenta ningún gasto.
+  const [budgetCurrency, setBudgetCurrency] = useState<Currency>(budget?.currency ?? currency)
 
   const effectiveId = categoryId || categories[0]?.id || ''
 
   return (
-    <Modal open={open} onClose={onClose} title="Nuevo presupuesto">
-      <p className="text-[var(--fs-sm)] text-[var(--color-text-secondary)] mb-4">Mes: {month} · Moneda: {currency}</p>
+    <Modal open={open} onClose={onClose} title={budget ? 'Editar presupuesto' : 'Nuevo presupuesto'}>
+      <p className="text-[var(--fs-sm)] text-[var(--color-text-secondary)] mb-4">Mes: {month}</p>
       {categories.length === 0 ? (
         <p className="text-[var(--fs-base)] text-[var(--color-text-secondary)]">Ya creaste un presupuesto para todas las categorías de gasto este mes.</p>
       ) : (
         <>
-          <Field label="Categoría">
-            <SelectInput value={effectiveId} onChange={(e) => setCategoryId(e.target.value)}>
+          <Field label="Categoría" hint={budget ? 'No se puede cambiar: sería otro presupuesto.' : undefined}>
+            <SelectInput value={effectiveId} disabled={!!budget} onChange={(e) => setCategoryId(e.target.value)}>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.icon} {c.name}
@@ -182,16 +226,28 @@ function NewBudgetModal({
               ))}
             </SelectInput>
           </Field>
-          <Field label="Presupuesto mensual">
-            <AmountInput value={amount} onChange={setAmount} currency={currency} />
+          <Field
+            label="Moneda"
+            hint="Solo se cuentan los gastos de cuentas en esta moneda."
+          >
+            <SelectInput value={budgetCurrency} onChange={(e) => setBudgetCurrency(e.target.value as Currency)}>
+              {availableCurrencies.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </SelectInput>
+          </Field>
+          <Field label="Presupuesto mensual" hint="El límite aplica solo a este mes calendario.">
+            <AmountInput value={amount} onChange={setAmount} currency={budgetCurrency} />
           </Field>
           <Button
             className="w-full"
             size="lg"
             disabled={amount <= 0 || !effectiveId}
-            onClick={() => onSave(effectiveId, amount)}
+            onClick={() => onSave(effectiveId, amount, budgetCurrency)}
           >
-            Guardar presupuesto
+            {budget ? 'Guardar cambios' : 'Guardar presupuesto'}
           </Button>
         </>
       )}

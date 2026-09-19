@@ -17,7 +17,7 @@ import {
 import type { FirebaseError } from 'firebase/app'
 import { deleteDoc, doc, getDoc, runTransaction, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore/lite'
 import { auth, db } from './config'
-import type { DashboardWidgetConfig, UserProfile } from '../types/models'
+import type { Currency, DashboardWidgetConfig, UserProfile } from '../types/models'
 import { AuthContext, type PendingGoogleLink } from './useAuth'
 
 const googleProvider = new GoogleAuthProvider()
@@ -224,6 +224,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile((prev) => (prev ? { ...prev, tourCompletado: true } : prev))
   }
 
+  async function updateMonedaPreferida(moneda: Currency) {
+    if (!user) return
+    await updateDoc(doc(db, 'usuarios', user.uid), { monedaPreferida: moneda })
+    setProfile((prev) => (prev ? { ...prev, monedaPreferida: moneda } : prev))
+  }
+
   async function updateResumenFijoOculto(oculto: boolean) {
     if (!user) return
     await updateDoc(doc(db, 'usuarios', user.uid), { resumenFijoOculto: oculto })
@@ -248,6 +254,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updateDashboardWidgets,
         completeTour,
         updateResumenFijoOculto,
+        updateMonedaPreferida,
       }}
     >
       {children}

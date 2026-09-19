@@ -30,6 +30,7 @@ export function CategoryTotalWidget({ config }: { config: { categoryId: string; 
       icon={category.icon}
       label={category.name}
       value={entries.length === 0 ? formatAmount(0, 'COP') : entries.map(([c, v]) => formatAmount(v, c)).join(' · ')}
+      sub={config.movementType === 'gasto' ? 'Gastado este mes' : 'Recibido este mes'}
       tone={config.movementType === 'gasto' ? 'expense' : 'income'}
     />
   )

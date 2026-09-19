@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react'
 import type { User, AuthCredential } from 'firebase/auth'
-import type { DashboardWidgetConfig, UserProfile } from '../types/models'
+import type { Currency, DashboardWidgetConfig, UserProfile } from '../types/models'
 
 export interface PendingGoogleLink {
   email: string
@@ -23,6 +23,7 @@ export interface AuthContextValue {
   updateDashboardWidgets: (widgets: DashboardWidgetConfig[]) => Promise<void>
   completeTour: () => Promise<void>
   updateResumenFijoOculto: (oculto: boolean) => Promise<void>
+  updateMonedaPreferida: (moneda: Currency) => Promise<void>
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)

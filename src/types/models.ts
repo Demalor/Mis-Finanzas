@@ -184,12 +184,13 @@ export interface UserProfile {
   ultimaConexion?: number // timestamp de la última vez que abrió la app
   dashboardWidgets?: DashboardWidgetConfig[] // panel de widgets personalizable en Inicio
   tourCompletado?: boolean // false solo en cuentas nuevas; ausente = no se le impone el tour
-  resumenFijoOculto?: boolean // oculta "Balance en COP" y "Gastos por categoría" del Inicio (útil si todas las cuentas son en otra moneda)
+  resumenFijoOculto?: boolean // oculta la tarjeta "Gastos por categoría" del Inicio
 }
 
 // ---------- Panel de widgets del Inicio ----------
 
 export type DashboardWidgetType =
+  | 'monthBalance'
   | 'accountBalance'
   | 'budgetStatus'
   | 'categoryTotal'
@@ -207,6 +208,15 @@ export interface QuickPayConfig {
   sourceId?: string
 }
 
+// Un aporte (delta > 0) o un retiro (delta < 0) de una caja de ahorro. El
+// historial se empezó a registrar después de que las cajas ya existían, así
+// que las viejas arrancan vacías: no hay pasado que reconstruir.
+export interface SavingsBoxEntry {
+  date: string // ISO yyyy-mm-dd
+  delta: number
+  accountId?: string // de qué cuenta salió la plata (solo en aportes)
+}
+
 // Caja de ahorro independiente: no es una cuenta real ni genera movimientos,
 // es una libreta aparte con su propia moneda para no mezclar con cuentas reales.
 export interface SavingsBoxConfig {
@@ -215,9 +225,11 @@ export interface SavingsBoxConfig {
   target: number
   current: number
   accountId?: string // si está asociada a una cuenta real, el monto sale del disponible de esa cuenta
+  history?: SavingsBoxEntry[]
 }
 
 export type DashboardWidgetConfig =
+  | { id: string; type: 'monthBalance'; currency: Currency }
   | { id: string; type: 'accountBalance'; accountId: string }
   | { id: string; type: 'budgetStatus'; categoryId: string }
   | { id: string; type: 'categoryTotal'; categoryId: string; movementType: MovementType }

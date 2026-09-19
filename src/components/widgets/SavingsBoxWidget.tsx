@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { Modal } from '../Modal'
 import { Button } from '../Button'
 import { Card } from '../Card'
-import { AmountInput } from '../FormControls'
+import { AmountInput, SelectInput } from '../FormControls'
 import { formatAmount } from '../../utils/currency'
-import type { SavingsBoxConfig } from '../../types/models'
+import type { Account, SavingsBoxConfig } from '../../types/models'
 
 // Caja de ahorro: si no está asociada a una cuenta es independiente (no genera
 // movimientos ni conversiones). Si sí, "current" es una reserva sobre el saldo
@@ -13,16 +13,24 @@ export function SavingsBoxWidget({
   box,
   accountName,
   accountAvailable,
+  accounts,
   onContribute,
 }: {
   box: SavingsBoxConfig
   accountName?: string
   accountAvailable?: number
-  onContribute: (delta: number) => void
+  accounts: Account[]
+  onContribute: (delta: number, originAccountId?: string) => void
 }) {
   const [moving, setMoving] = useState<'add' | 'withdraw' | null>(null)
   const [amount, setAmount] = useState(0)
+  const [origin, setOrigin] = useState('')
   const [error, setError] = useState('')
+
+  // Si la caja está atada a una cuenta, el origen ya se sabe y no se pregunta.
+  // Solo las cajas independientes necesitan decir de dónde salió la plata.
+  const preguntarOrigen = !box.accountId && moving === 'add'
+  const opcionesOrigen = accounts.filter((a) => a.moneda === box.currency)
 
   const pct = box.target > 0 ? Math.min(100, (box.current / box.target) * 100) : 0
   const reached = box.current >= box.target && box.target > 0
@@ -33,8 +41,9 @@ export function SavingsBoxWidget({
       setError(`Solo hay ${formatAmount(accountAvailable, box.currency)} disponibles en ${accountName ?? 'la cuenta'}.`)
       return
     }
-    onContribute(moving === 'add' ? amount : -amount)
+    onContribute(moving === 'add' ? amount : -amount, origin || undefined)
     setAmount(0)
+    setOrigin('')
     setError('')
     setMoving(null)
   }
@@ -84,6 +93,19 @@ export function SavingsBoxWidget({
           </p>
         )}
         <AmountInput value={amount} onChange={setAmount} currency={box.currency} />
+        {preguntarOrigen && opcionesOrigen.length > 0 && (
+          <label className="block mt-3">
+            <span className="block text-[var(--fs-sm)] font-semibold mb-[var(--sp-2)]">¿De qué cuenta salió?</span>
+            <SelectInput value={origin} onChange={(e) => setOrigin(e.target.value)}>
+              <option value="">Sin registrar</option>
+              {opcionesOrigen.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.nombre}
+                </option>
+              ))}
+            </SelectInput>
+          </label>
+        )}
         {error && (
           <p className="text-[var(--fs-sm)] mt-2 font-medium" style={{ color: 'var(--color-expense)' }}>
             {error}

@@ -7,6 +7,7 @@ import { CURRENCIES } from '../../types/models'
 import type { Currency, DashboardWidgetConfig, DashboardWidgetType, MovementType } from '../../types/models'
 
 const TITLES: Record<DashboardWidgetType, string> = {
+  monthBalance: 'Balance del mes',
   accountBalance: 'Saldo de una cuenta',
   budgetStatus: 'Estado de un presupuesto',
   categoryTotal: 'Total de una categoría',
@@ -16,12 +17,17 @@ const TITLES: Record<DashboardWidgetType, string> = {
   savingsBox: 'Caja de ahorro',
 }
 
+// Sirve para crear y para editar: si llega `config`, cada campo arranca con
+// su valor y al guardar se conserva el id (así el widget no cambia de sitio).
+// El padre lo monta con key={config?.id ?? 'new'} para resetear el estado.
 export function WidgetConfigModal({
   type,
+  config,
   onClose,
   onSave,
 }: {
   type: DashboardWidgetType
+  config?: DashboardWidgetConfig
   onClose: () => void
   onSave: (config: DashboardWidgetConfig) => void
 }) {
@@ -30,37 +36,55 @@ export function WidgetConfigModal({
   const expenseCategories = categories.filter((c) => c.type === 'gasto')
   const incomeCategories = categories.filter((c) => c.type === 'ingreso')
 
+  // Cada bloque lee de `config` solo cuando es de su propio tipo.
+  const enModo = <T extends DashboardWidgetType>(t: T) =>
+    config?.type === t ? (config as Extract<DashboardWidgetConfig, { type: T }>) : undefined
+  const editando = !!config
+
+  // monthBalance
+  const [mbCurrency, setMbCurrency] = useState<Currency>(enModo('monthBalance')?.currency ?? 'COP')
+
   // accountBalance
-  const [accountId, setAccountId] = useState(accounts[0]?.id ?? '')
+  const [accountId, setAccountId] = useState(enModo('accountBalance')?.accountId ?? accounts[0]?.id ?? '')
 
   // budgetStatus
-  const [budgetCategoryId, setBudgetCategoryId] = useState(expenseCategories[0]?.id ?? '')
+  const [budgetCategoryId, setBudgetCategoryId] = useState(
+    enModo('budgetStatus')?.categoryId ?? expenseCategories[0]?.id ?? ''
+  )
 
   // categoryTotal
-  const [ctMovementType, setCtMovementType] = useState<MovementType>('gasto')
+  const ctPrev = enModo('categoryTotal')
+  const [ctMovementType, setCtMovementType] = useState<MovementType>(ctPrev?.movementType ?? 'gasto')
   const ctCategories = ctMovementType === 'gasto' ? expenseCategories : incomeCategories
-  const [ctCategoryId, setCtCategoryId] = useState(ctCategories[0]?.id ?? '')
+  const [ctCategoryId, setCtCategoryId] = useState(ctPrev?.categoryId ?? ctCategories[0]?.id ?? '')
 
   // quickPay
-  const [qpDescription, setQpDescription] = useState('')
-  const [qpAmount, setQpAmount] = useState(0)
-  const [qpMovementType, setQpMovementType] = useState<MovementType>('gasto')
+  const qpPrev = enModo('quickPay')?.config
+  const [qpDescription, setQpDescription] = useState(qpPrev?.description ?? '')
+  const [qpAmount, setQpAmount] = useState(qpPrev?.amount ?? 0)
+  const [qpMovementType, setQpMovementType] = useState<MovementType>(qpPrev?.type ?? 'gasto')
   const qpCategories = qpMovementType === 'gasto' ? expenseCategories : incomeCategories
-  const [qpCategoryId, setQpCategoryId] = useState(qpCategories[0]?.id ?? '')
-  const [qpAccountId, setQpAccountId] = useState(accounts[0]?.id ?? '')
-  const [qpSourceId, setQpSourceId] = useState(incomeSources[0]?.id ?? '')
+  const [qpCategoryId, setQpCategoryId] = useState(qpPrev?.categoryId ?? qpCategories[0]?.id ?? '')
+  const [qpAccountId, setQpAccountId] = useState(qpPrev?.accountId ?? accounts[0]?.id ?? '')
+  const [qpSourceId, setQpSourceId] = useState(qpPrev?.sourceId ?? incomeSources[0]?.id ?? '')
 
   // savingsBox
-  const [sbName, setSbName] = useState('')
-  const [sbCurrency, setSbCurrency] = useState<Currency>('COP')
-  const [sbTarget, setSbTarget] = useState(0)
-  const [sbAccountId, setSbAccountId] = useState('')
+  const sbPrev = enModo('savingsBox')?.box
+  const [sbName, setSbName] = useState(sbPrev?.name ?? '')
+  const [sbCurrency, setSbCurrency] = useState<Currency>(sbPrev?.currency ?? 'COP')
+  const [sbTarget, setSbTarget] = useState(sbPrev?.target ?? 0)
+  const [sbAccountId, setSbAccountId] = useState(sbPrev?.accountId ?? '')
   const sbAccount = accounts.find((a) => a.id === sbAccountId)
   const sbEffectiveCurrency = sbAccount?.moneda ?? sbCurrency
+  // Cambiar la moneda de una caja que ya tiene plata reinterpretaría un monto
+  // real apartado, así que se bloquea mientras tenga saldo.
+  const sbMonedaBloqueada = !!sbPrev && sbPrev.current > 0
 
   function handleSave() {
-    const id = crypto.randomUUID()
-    if (type === 'accountBalance') {
+    const id = config?.id ?? crypto.randomUUID()
+    if (type === 'monthBalance') {
+      onSave({ id, type, currency: mbCurrency })
+    } else if (type === 'accountBalance') {
       if (!accountId) return
       onSave({ id, type, accountId })
     } else if (type === 'budgetStatus') {
@@ -88,12 +112,22 @@ export function WidgetConfigModal({
       onSave({
         id,
         type,
-        box: { name: sbName.trim(), currency: sbEffectiveCurrency, target: sbTarget, current: 0, accountId: sbAccountId || undefined },
+        box: {
+          name: sbName.trim(),
+          currency: sbMonedaBloqueada ? sbPrev.currency : sbEffectiveCurrency,
+          target: sbTarget,
+          accountId: sbAccountId || undefined,
+          // Editar la caja cambia su configuración, nunca la plata que tiene
+          // apartada ni el registro de cómo llegó ahí.
+          current: sbPrev?.current ?? 0,
+          history: sbPrev?.history,
+        },
       })
     }
   }
 
   const canSave =
+    type === 'monthBalance' ||
     (type === 'accountBalance' && !!accountId) ||
     (type === 'budgetStatus' && !!budgetCategoryId) ||
     (type === 'categoryTotal' && !!ctCategoryId) ||
@@ -101,7 +135,19 @@ export function WidgetConfigModal({
     (type === 'savingsBox' && sbName.trim() !== '' && sbTarget > 0)
 
   return (
-    <Modal open onClose={onClose} title={TITLES[type]}>
+    <Modal open onClose={onClose} title={`${editando ? 'Editar' : 'Nuevo'}: ${TITLES[type]}`}>
+      {type === 'monthBalance' && (
+        <Field label="Moneda" hint="Se suman solo los movimientos de las cuentas en esta moneda.">
+          <SelectInput value={mbCurrency} onChange={(e) => setMbCurrency(e.target.value as Currency)}>
+            {CURRENCIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.label} ({c.code})
+              </option>
+            ))}
+          </SelectInput>
+        </Field>
+      )}
+
       {type === 'accountBalance' && (
         <Field label="Cuenta">
           {accounts.length === 0 ? (
@@ -238,8 +284,15 @@ export function WidgetConfigModal({
             </Field>
           )}
           {!sbAccountId && (
-            <Field label="Moneda">
-              <SelectInput value={sbCurrency} onChange={(e) => setSbCurrency(e.target.value as Currency)}>
+            <Field
+              label="Moneda"
+              hint={sbMonedaBloqueada ? 'No se puede cambiar: la caja ya tiene plata apartada en esta moneda.' : undefined}
+            >
+              <SelectInput
+                value={sbMonedaBloqueada ? sbPrev.currency : sbCurrency}
+                disabled={sbMonedaBloqueada}
+                onChange={(e) => setSbCurrency(e.target.value as Currency)}
+              >
                 {CURRENCIES.map((c) => (
                   <option key={c.code} value={c.code}>
                     {c.label} ({c.code})
@@ -255,7 +308,7 @@ export function WidgetConfigModal({
       )}
 
       <Button className="w-full mt-2" size="lg" disabled={!canSave} onClick={handleSave}>
-        Guardar widget
+        {editando ? 'Guardar cambios' : 'Guardar widget'}
       </Button>
     </Modal>
   )
