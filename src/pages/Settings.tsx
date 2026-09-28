@@ -5,14 +5,14 @@ import { Button } from '../components/Button'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { useData } from '../context/useData'
 import { SelectInput } from '../components/FormControls'
-import { CURRENCIES, type Currency } from '../types/models'
+import { CURRENCIES, type Currency, type SavingsBoxConfig } from '../types/models'
 import { useAuth } from '../firebase/useAuth'
 import { useTheme } from '../context/useTheme'
 import { exportBackup, restoreBackup, validateBackup, wipeAllData } from '../firebase/repo'
 import { formatDateReadable, todayISO } from '../utils/date'
 
 export function Settings() {
-  const { movements, categories, refresh } = useData()
+  const { movements, categories, refresh, accounts, incomeSources, transfers, loans } = useData()
   const { user, profile, signOut, updateResumenFijoOculto, updateMonedaPreferida } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
@@ -29,12 +29,83 @@ export function Settings() {
   }
 
   function handleExportCSV() {
-    const header = ['Fecha', 'Tipo', 'Categoría', 'Descripción', 'Valor']
-    const rows = movements.map((m) => {
+    const header = [
+      'Fecha', 'Tipo', 'Categoría', 'Descripción', 'Valor', 'Moneda', 'Cuenta',
+      'Origen', 'Destino', 'Valor destino', 'Moneda destino', 'Fuente', 'Deuda', 'ID',
+    ]
+    const accountName = (id?: string) => accounts.find((a) => a.id === id)?.nombre ?? ''
+    const accountCurrency = (id?: string) => accounts.find((a) => a.id === id)?.moneda ?? ''
+
+    const movementRows = movements.map((m) => {
       const cat = categories.find((c) => c.id === m.categoryId)
-      return [m.date, m.type === 'ingreso' ? 'Ingreso' : 'Gasto', cat?.name ?? 'Sin categoría', csvEscape(m.description), String(m.amount)]
+      const source = incomeSources.find((s) => s.id === m.sourceId)
+      const loan = loans.find((l) => l.id === m.loanId)
+      return [
+        m.date,
+        m.type === 'ingreso' ? 'Ingreso' : 'Gasto',
+        cat?.name ?? 'Sin categoría',
+        m.description,
+        String(m.amount),
+        accountCurrency(m.accountId),
+        accountName(m.accountId),
+        '',
+        '',
+        '',
+        '',
+        source?.nombre ?? '',
+        loan ? `${loan.counterpartyName} (${loan.direction === 'debo' ? 'debo' : 'me deben'})` : '',
+        m.id,
+      ]
     })
-    const csv = [header, ...rows].map((r) => r.join(',')).join('\n')
+
+    const transferRows = transfers.map((t) => {
+      const destinoId = t.toAccountId ?? t.fromAccountId
+      return [
+        t.date,
+        'Transferencia',
+        '',
+        t.note || 'Cambio de moneda',
+        String(t.fromAmount),
+        accountCurrency(t.fromAccountId),
+        '',
+        accountName(t.fromAccountId),
+        accountName(destinoId),
+        String(t.toAmount),
+        accountCurrency(destinoId),
+        '',
+        '',
+        t.id,
+      ]
+    })
+
+    const boxes = (profile?.dashboardWidgets ?? [])
+      .filter((w) => w.type === 'savingsBox')
+      .map((w) => (w as { type: 'savingsBox'; box: SavingsBoxConfig }).box)
+
+    const boxRows = boxes.flatMap((box, bi) =>
+      (box.history ?? []).map((entry, ei) => {
+        const aporte = entry.delta > 0
+        return [
+          entry.date,
+          'Transferencia',
+          '',
+          aporte ? `Aporte a caja: ${box.name}` : `Retiro de caja: ${box.name}`,
+          String(Math.abs(entry.delta)),
+          box.currency,
+          '',
+          aporte ? accountName(entry.accountId) : box.name,
+          aporte ? box.name : accountName(box.accountId),
+          '',
+          '',
+          '',
+          '',
+          `caja-${bi}-${ei}`,
+        ]
+      })
+    )
+
+    const rows = [...movementRows, ...transferRows, ...boxRows].sort((a, b) => String(a[0]).localeCompare(String(b[0])))
+    const csv = [header, ...rows.map((r) => r.map(csvEscape))].map((r) => r.join(',')).join('\n')
     downloadFile('\uFEFF' + csv, `nummi-movimientos-${todayForFile()}.csv`, 'text/csv')
     setMessage({ text: 'Movimientos exportados a CSV correctamente.' })
   }
