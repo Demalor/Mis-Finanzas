@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import type { Movement, Category, Budget, RecurringMovement, Account, IncomeSource, Transfer, Loan, LoanPayment, Project, ProjectEntry } from '../types/models'
+import type { Movement, Category, Budget, RecurringMovement, Account, IncomeSource, Transfer, Loan, LoanPayment, Project, ProjectEntry, SavingsBox } from '../types/models'
 
 // categoryId no se guarda en el pago: solo clasifica el movimiento que se crea
 // cuando el pago sale de una cuenta real.
@@ -17,6 +17,7 @@ export interface DataContextValue {
   loans: Loan[]
   projects: Project[]
   projectEntries: ProjectEntry[]
+  savingsBoxes: SavingsBox[]
   refresh: () => Promise<void>
 
   addMovement: (input: Omit<Movement, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Movement>
@@ -58,6 +59,12 @@ export interface DataContextValue {
   deleteProject: (id: string) => Promise<void>
   addProjectEntry: (input: Omit<ProjectEntry, 'id'>) => Promise<void>
   deleteProjectEntry: (id: string) => Promise<void>
+
+  addSavingsBox: (input: Pick<SavingsBox, 'name' | 'currency' | 'target' | 'accountId'>) => Promise<void>
+  updateSavingsBox: (box: SavingsBox) => Promise<void>
+  deleteSavingsBox: (id: string) => Promise<void>
+  // delta > 0 aporta, < 0 retira. originAccountId solo aplica a cajas independientes.
+  moveSavingsBox: (id: string, delta: number, originAccountId?: string) => Promise<void>
 }
 
 export const DataContext = createContext<DataContextValue | null>(null)

@@ -5,14 +5,14 @@ import { Button } from '../components/Button'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { useData } from '../context/useData'
 import { SelectInput } from '../components/FormControls'
-import { CURRENCIES, type Currency, type SavingsBoxConfig } from '../types/models'
+import { CURRENCIES, type Currency } from '../types/models'
 import { useAuth } from '../firebase/useAuth'
 import { useTheme } from '../context/useTheme'
 import { exportBackup, restoreBackup, validateBackup, wipeAllData } from '../firebase/repo'
 import { formatDateReadable, todayISO } from '../utils/date'
 
 export function Settings() {
-  const { movements, categories, refresh, accounts, incomeSources, transfers, loans } = useData()
+  const { movements, categories, refresh, accounts, incomeSources, transfers, loans, savingsBoxes } = useData()
   const { user, profile, signOut, updateResumenFijoOculto, updateMonedaPreferida } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
@@ -78,12 +78,8 @@ export function Settings() {
       ]
     })
 
-    const boxes = (profile?.dashboardWidgets ?? [])
-      .filter((w) => w.type === 'savingsBox')
-      .map((w) => (w as { type: 'savingsBox'; box: SavingsBoxConfig }).box)
-
-    const boxRows = boxes.flatMap((box, bi) =>
-      (box.history ?? []).map((entry, ei) => {
+    const boxRows = savingsBoxes.flatMap((box) =>
+      box.history.map((entry, ei) => {
         const aporte = entry.delta > 0
         return [
           entry.date,
@@ -99,7 +95,7 @@ export function Settings() {
           '',
           '',
           '',
-          `caja-${bi}-${ei}`,
+          `caja-${box.id}-${ei}`,
         ]
       })
     )

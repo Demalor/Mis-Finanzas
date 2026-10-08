@@ -1,30 +1,17 @@
-import type { Account, Budget, Movement, Category, Currency, Transfer, DashboardWidgetConfig, SavingsBoxConfig } from '../types/models'
+import type { Account, Budget, Movement, Category, Currency, Transfer, SavingsBox } from '../types/models'
 import { CURRENCIES } from '../types/models'
 import { toMonthKey } from './date'
 
 // Suma lo apartado en cajas de ahorro asociadas a una cuenta: es una reserva
 // sobre su saldo, no un movimiento — no aparece en ingresos/gastos.
-export function reservedForAccount(widgets: DashboardWidgetConfig[], accountId: string): number {
-  return widgets
-    .filter((w) => w.type === 'savingsBox' && w.box.accountId === accountId)
-    .reduce((sum, w) => sum + (w.type === 'savingsBox' ? w.box.current : 0), 0)
-}
-
-export interface SavingsBoxItem {
-  id: string
-  box: SavingsBoxConfig
-}
-
-// Las cajas de ahorro no son una colección aparte: viven como widgets dentro
-// del perfil. El id del widget es estable, así que sirve para seleccionarlas.
-export function savingsBoxesOf(widgets: DashboardWidgetConfig[]): SavingsBoxItem[] {
-  return widgets.flatMap((w) => (w.type === 'savingsBox' ? [{ id: w.id, box: w.box }] : []))
+export function reservedForAccount(boxes: SavingsBox[], accountId: string): number {
+  return boxes.filter((b) => b.accountId === accountId).reduce((sum, b) => sum + b.current, 0)
 }
 
 // Cuánto tenía la caja al cerrar ese mes. El historial empezó a registrarse
 // después de que las cajas ya existían, así que se reconstruye hacia atrás
 // desde el monto actual (que sí es real) restando los movimientos posteriores.
-export function savingsBoxBalanceAt(box: SavingsBoxConfig, monthKey: string): number {
+export function savingsBoxBalanceAt(box: SavingsBox, monthKey: string): number {
   const posteriores = (box.history ?? [])
     .filter((e) => toMonthKey(e.date) > monthKey)
     .reduce((sum, e) => sum + e.delta, 0)
@@ -173,7 +160,7 @@ export function accountBreakdown(movements: Movement[], accounts: Account[], typ
 // De dónde llegó la plata que hay en una caja de ahorro. Solo cuentan los
 // aportes (delta > 0); los aportes anteriores a que se registrara el origen
 // quedan agrupados como "Sin registrar".
-export function savingsOriginBreakdown(box: SavingsBoxConfig, accounts: Account[]): AmountByKey[] {
+export function savingsOriginBreakdown(box: SavingsBox, accounts: Account[]): AmountByKey[] {
   const map = new Map<string, { label: string; total: number }>()
   for (const e of box.history ?? []) {
     if (e.delta <= 0) continue

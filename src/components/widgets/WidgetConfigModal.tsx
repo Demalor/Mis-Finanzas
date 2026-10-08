@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Modal } from '../Modal'
 import { Button } from '../Button'
 import { Field, SelectInput, TextInput, AmountInput, TypeToggle } from '../FormControls'
@@ -32,8 +33,8 @@ export function WidgetConfigModal({
   onClose: () => void
   onSave: (config: DashboardWidgetConfig) => void
 }) {
-  const { accounts, categories, incomeSources } = useData()
-  const savingsAccounts = accounts.filter((a) => a.tipo !== 'tarjeta_credito')
+  const { accounts, categories, incomeSources, savingsBoxes } = useData()
+  const navigate = useNavigate()
   const expenseCategories = categories.filter((c) => c.type === 'gasto')
   const incomeCategories = categories.filter((c) => c.type === 'ingreso')
 
@@ -71,17 +72,9 @@ export function WidgetConfigModal({
   const [qpAccountId, setQpAccountId] = useState(qpPrev?.accountId ?? accounts[0]?.id ?? '')
   const [qpSourceId, setQpSourceId] = useState(qpPrev?.sourceId ?? incomeSources[0]?.id ?? '')
 
-  // savingsBox
-  const sbPrev = enModo('savingsBox')?.box
-  const [sbName, setSbName] = useState(sbPrev?.name ?? '')
-  const [sbCurrency, setSbCurrency] = useState<Currency>(sbPrev?.currency ?? 'COP')
-  const [sbTarget, setSbTarget] = useState(sbPrev?.target ?? 0)
-  const [sbAccountId, setSbAccountId] = useState(sbPrev?.accountId ?? '')
-  const sbAccount = accounts.find((a) => a.id === sbAccountId)
-  const sbEffectiveCurrency = sbAccount?.moneda ?? sbCurrency
-  // Cambiar la moneda de una caja que ya tiene plata reinterpretaría un monto
-  // real apartado, así que se bloquea mientras tenga saldo.
-  const sbMonedaBloqueada = !!sbPrev && sbPrev.current > 0
+  // savingsBox: el widget solo apunta a una caja que vive en Ahorros.
+  const sbPrev = enModo('savingsBox')
+  const [sbBoxId, setSbBoxId] = useState(sbPrev ? sbPrev.boxId ?? sbPrev.id : savingsBoxes[0]?.id ?? '')
 
   function handleSave() {
     const id = config?.id ?? crypto.randomUUID()
@@ -111,21 +104,8 @@ export function WidgetConfigModal({
         },
       })
     } else if (type === 'savingsBox') {
-      if (!sbName.trim() || sbTarget <= 0) return
-      onSave({
-        id,
-        type,
-        box: {
-          name: sbName.trim(),
-          currency: sbMonedaBloqueada ? sbPrev.currency : sbEffectiveCurrency,
-          target: sbTarget,
-          accountId: sbAccountId || undefined,
-          // Editar la caja cambia su configuración, nunca la plata que tiene
-          // apartada ni el registro de cómo llegó ahí.
-          current: sbPrev?.current ?? 0,
-          history: sbPrev?.history,
-        },
-      })
+      if (!sbBoxId) return
+      onSave({ id, type, boxId: sbBoxId })
     }
   }
 
@@ -135,7 +115,7 @@ export function WidgetConfigModal({
     (type === 'budgetStatus' && !!budgetCategoryId) ||
     (type === 'categoryTotal' && !!ctCategoryId) ||
     (type === 'quickPay' && qpDescription.trim() !== '' && qpAmount > 0 && !!qpCategoryId) ||
-    (type === 'savingsBox' && sbName.trim() !== '' && sbTarget > 0)
+    (type === 'savingsBox' && !!sbBoxId)
 
   return (
     <Modal open onClose={onClose} title={`${editando ? 'Editar' : 'Nuevo'}: ${TITLES[type]}`}>
@@ -270,44 +250,24 @@ export function WidgetConfigModal({
       )}
 
       {type === 'savingsBox' && (
-        <>
-          <Field label="Nombre de la caja" hint={sbAccountId ? 'Lo que apartes saldrá del disponible de esa cuenta.' : 'Es independiente de tus cuentas — no genera movimientos.'}>
-            <TextInput value={sbName} onChange={(e) => setSbName(e.target.value)} placeholder="Ej: Viaje a Cartagena" />
-          </Field>
-          {savingsAccounts.length > 0 && (
-            <Field label="Cuenta (opcional)" hint="Si eliges una, la caja usa su moneda y descuenta lo apartado de su disponible.">
-              <SelectInput value={sbAccountId} onChange={(e) => setSbAccountId(e.target.value)}>
-                <option value="">Ninguna — caja independiente</option>
-                {savingsAccounts.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.nombre} ({a.moneda})
-                  </option>
-                ))}
-              </SelectInput>
-            </Field>
+        <Field label="Caja" hint="Las cajas se crean y se manejan en la sección Ahorros.">
+          {savingsBoxes.length === 0 ? (
+            <div className="flex flex-col gap-2">
+              <p className="text-[var(--fs-sm)] text-[var(--color-text-secondary)]">Todavía no tienes cajas de ahorro.</p>
+              <Button variant="secondary" onClick={() => navigate('/ahorros')}>
+                Crear una en Ahorros
+              </Button>
+            </div>
+          ) : (
+            <SelectInput value={sbBoxId} onChange={(e) => setSbBoxId(e.target.value)}>
+              {savingsBoxes.map((b) => (
+                <option key={b.id} value={b.id}>
+                  🐷 {b.name} ({b.currency})
+                </option>
+              ))}
+            </SelectInput>
           )}
-          {!sbAccountId && (
-            <Field
-              label="Moneda"
-              hint={sbMonedaBloqueada ? 'No se puede cambiar: la caja ya tiene plata apartada en esta moneda.' : undefined}
-            >
-              <SelectInput
-                value={sbMonedaBloqueada ? sbPrev.currency : sbCurrency}
-                disabled={sbMonedaBloqueada}
-                onChange={(e) => setSbCurrency(e.target.value as Currency)}
-              >
-                {CURRENCIES.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.label} ({c.code})
-                  </option>
-                ))}
-              </SelectInput>
-            </Field>
-          )}
-          <Field label="Meta">
-            <AmountInput value={sbTarget} onChange={setSbTarget} currency={sbEffectiveCurrency} />
-          </Field>
-        </>
+        </Field>
       )}
 
       <Button className="w-full mt-2" size="lg" disabled={!canSave} onClick={handleSave}>

@@ -206,12 +206,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await firebaseSignOut(auth)
   }
 
-  async function markNoveltiesSeen(version: number) {
-    if (!user) return
-    await updateDoc(doc(db, 'usuarios', user.uid), { novedadesVistas: version })
-    setProfile((prev) => (prev ? { ...prev, novedadesVistas: version } : prev))
-  }
-
   async function updateDashboardWidgets(widgets: DashboardWidgetConfig[]) {
     if (!user) return
     await updateDoc(doc(db, 'usuarios', user.uid), { dashboardWidgets: widgets })
@@ -250,7 +244,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         completeGoogleLink,
         signOut,
         clearError: () => setError(''),
-        markNoveltiesSeen,
         updateDashboardWidgets,
         completeTour,
         updateResumenFijoOculto,

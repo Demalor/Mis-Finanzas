@@ -3,9 +3,10 @@ import { ensureSeeded } from '../firebase/repo'
 import * as repo from '../firebase/repo'
 import { nextPendingDate } from '../utils/recurring'
 import { loanTotals } from '../utils/loanMath'
+import { todayISO } from '../utils/date'
 import { useAuth } from '../firebase/useAuth'
 import { DataContext, type DataContextValue } from './useData'
-import type { Movement, Category, Budget, RecurringMovement, Account, IncomeSource, Transfer, Loan, LoanPayment, Project, ProjectEntry } from '../types/models'
+import type { Movement, Category, Budget, RecurringMovement, Account, IncomeSource, Transfer, Loan, LoanPayment, Project, ProjectEntry, SavingsBox, SavingsBoxEntry } from '../types/models'
 
 // ---- Helpers de estado local: tras cada mutación actualizamos el array en
 // memoria en vez de re-descargar las 8 colecciones de Firestore. ----
@@ -42,10 +43,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [loans, setLoans] = useState<Loan[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [projectEntries, setProjectEntries] = useState<ProjectEntry[]>([])
+  const [savingsBoxes, setSavingsBoxes] = useState<SavingsBox[]>([])
 
   const loadAll = useCallback(async () => {
     if (!userId) return
-    const [m, c, b, r, acc, src, trf, ln, prj, pent] = await Promise.all([
+    const [m, c, b, r, acc, src, trf, ln, prj, pent, cajas] = await Promise.all([
       repo.getAllMovements(userId),
       repo.getAllCategories(userId),
       repo.getAllBudgets(userId),
@@ -56,6 +58,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       repo.getAllLoans(userId),
       repo.getAllProjects(userId),
       repo.getAllProjectEntries(userId),
+      repo.getAllSavingsBoxes(userId),
     ])
     setMovements(m)
     setCategories(c)
@@ -67,6 +70,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setLoans(ln)
     setProjects(prj)
     setProjectEntries(pent)
+    setSavingsBoxes(cajas)
   }, [userId])
 
   useEffect(() => {
@@ -82,12 +86,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setLoans([])
       setProjects([])
       setProjectEntries([])
+      setSavingsBoxes([])
       setLoading(false)
       return
     }
     setLoading(true)
     ;(async () => {
       await ensureSeeded(userId)
+      try {
+        await repo.migrateSavingsBoxes(userId)
+      } catch (e) {
+        console.error('No se pudieron migrar las cajas de ahorro', e)
+      }
       await loadAll()
       setLoading(false)
     })()
@@ -106,6 +116,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       loans,
       projects,
       projectEntries,
+      savingsBoxes,
       refresh: loadAll,
 
       addMovement: async (input) => {
@@ -264,6 +275,48 @@ export function DataProvider({ children }: { children: ReactNode }) {
         removeOne(setProjectEntries, id)
       },
 
+      addSavingsBox: async (input) => {
+        if (!userId) return
+        const nueva: Omit<SavingsBox, 'id'> = {
+          name: input.name,
+          currency: input.currency,
+          target: input.target,
+          current: 0,
+          history: [],
+          createdAt: Date.now(),
+        }
+        if (input.accountId) nueva.accountId = input.accountId
+        addOne(setSavingsBoxes, await repo.addSavingsBox(userId, nueva))
+      },
+      updateSavingsBox: async (box) => {
+        if (!userId) return
+        const limpia = { ...box }
+        if (!limpia.accountId) delete limpia.accountId
+        await repo.saveSavingsBox(userId, limpia)
+        upsertOne(setSavingsBoxes, limpia)
+      },
+      deleteSavingsBox: async (id) => {
+        if (!userId) return
+        await repo.deleteSavingsBox(userId, id)
+        removeOne(setSavingsBoxes, id)
+      },
+      moveSavingsBox: async (id, delta, originAccountId) => {
+        if (!userId) return
+        const box = savingsBoxes.find((b) => b.id === id)
+        if (!box) return
+        // El monto nunca baja de 0, así que al retirar lo realmente aplicado
+        // puede ser menor a lo pedido: eso es lo que queda en el historial.
+        const current = Math.max(0, box.current + delta)
+        const aplicado = current - box.current
+        if (aplicado === 0) return
+        const entry: SavingsBoxEntry = { date: todayISO(), delta: aplicado }
+        const origen = box.accountId ?? originAccountId
+        if (origen && aplicado > 0) entry.accountId = origen
+        const next: SavingsBox = { ...box, current, history: [...box.history, entry] }
+        await repo.saveSavingsBox(userId, next)
+        upsertOne(setSavingsBoxes, next)
+      },
+
       deleteLoan: async (id) => {
         if (!userId) return
         await repo.deleteLoan(userId, id)
@@ -319,7 +372,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         patchOne(setLoans, loanId, changes)
       },
     }),
-    [loading, movements, categories, budgets, recurring, accounts, incomeSources, transfers, loans, projects, projectEntries, loadAll, userId]
+    [loading, movements, categories, budgets, recurring, accounts, incomeSources, transfers, loans, projects, projectEntries, savingsBoxes, loadAll, userId]
   )
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>

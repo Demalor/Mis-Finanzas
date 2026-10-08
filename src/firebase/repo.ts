@@ -2,7 +2,9 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
+  updateDoc,
   writeBatch,
   setDoc,
   type DocumentData,
@@ -21,6 +23,8 @@ import type {
   Loan,
   Project,
   ProjectEntry,
+  SavingsBox,
+  DashboardWidgetConfig,
 } from '../types/models'
 import { DEFAULT_CATEGORIES } from './defaultCategories'
 
@@ -302,10 +306,64 @@ export async function deleteProjectEntry(userId: string, id: string) {
   await deleteDoc(doc(col(userId, 'proyectoMovimientos'), id))
 }
 
+// ---------- Cajas de ahorro ----------
+
+export async function getAllSavingsBoxes(userId: string): Promise<SavingsBox[]> {
+  const snap = await getDocs(col(userId, 'cajasAhorro'))
+  return snap.docs.map((d) => d.data() as SavingsBox)
+}
+
+export async function addSavingsBox(userId: string, input: Omit<SavingsBox, 'id'>) {
+  const box: SavingsBox = { ...input, id: uid('caja') }
+  await setDoc(doc(col(userId, 'cajasAhorro'), box.id), box)
+  return box
+}
+
+// Se reescribe el documento entero (sin merge) para que desasociar la cuenta
+// borre de verdad `accountId` en vez de dejar el valor viejo.
+export async function saveSavingsBox(userId: string, box: SavingsBox) {
+  await setDoc(doc(col(userId, 'cajasAhorro'), box.id), box)
+}
+
+export async function deleteSavingsBox(userId: string, id: string) {
+  await deleteDoc(doc(col(userId, 'cajasAhorro'), id))
+}
+
+// Las cajas vivían embebidas en los widgets del perfil. Cada una pasa a su
+// propio documento con el mismo id del widget, y el widget gana `boxId`.
+// No se borra `box` del widget: la versión anterior de la app (que comparte
+// esta base) todavía lo lee. Solo crea la caja si no existe, así que correrla
+// de nuevo nunca pisa aportes hechos después.
+export async function migrateSavingsBoxes(userId: string) {
+  const userRef = doc(db, 'usuarios', userId)
+  const snap = await getDoc(userRef)
+  const widgets = (snap.data()?.dashboardWidgets ?? []) as DashboardWidgetConfig[]
+  const pendientes = widgets.filter((w) => w.type === 'savingsBox' && w.box && !w.boxId)
+  if (pendientes.length === 0) return
+
+  const existentes = new Set((await getDocs(col(userId, 'cajasAhorro'))).docs.map((d) => d.id))
+  for (const w of pendientes) {
+    if (w.type !== 'savingsBox' || !w.box || existentes.has(w.id)) continue
+    const box: SavingsBox = {
+      id: w.id,
+      name: w.box.name,
+      currency: w.box.currency,
+      target: w.box.target,
+      current: w.box.current,
+      history: w.box.history ?? [],
+      createdAt: Date.now(),
+    }
+    if (w.box.accountId) box.accountId = w.box.accountId
+    await setDoc(doc(col(userId, 'cajasAhorro'), box.id), box)
+  }
+  const migrados = widgets.map((w) => (w.type === 'savingsBox' && !w.boxId ? { ...w, boxId: w.id } : w))
+  await updateDoc(userRef, { dashboardWidgets: migrados })
+}
+
 // ---------- Respaldo ----------
 
 export async function exportBackup(userId: string): Promise<BackupData> {
-  const [movements, categories, budgets, recurring, accounts, incomeSources, transfers, loans, projects, projectEntries] =
+  const [movements, categories, budgets, recurring, accounts, incomeSources, transfers, loans, projects, projectEntries, savingsBoxes] =
     await Promise.all([
       getAllMovements(userId),
       getAllCategories(userId),
@@ -317,9 +375,10 @@ export async function exportBackup(userId: string): Promise<BackupData> {
       getAllLoans(userId),
       getAllProjects(userId),
       getAllProjectEntries(userId),
+      getAllSavingsBoxes(userId),
     ])
   return {
-    version: 4,
+    version: 5,
     exportedAt: new Date().toISOString(),
     movements,
     categories,
@@ -331,6 +390,7 @@ export async function exportBackup(userId: string): Promise<BackupData> {
     loans,
     projects,
     projectEntries,
+    savingsBoxes,
   }
 }
 
@@ -351,6 +411,7 @@ const ALL_COLLECTIONS = [
   'prestamos',
   'proyectos',
   'proyectoMovimientos',
+  'cajasAhorro',
 ] as const
 
 export async function restoreBackup(userId: string, data: BackupData) {
@@ -368,6 +429,7 @@ export async function restoreBackup(userId: string, data: BackupData) {
   for (const l of data.loans ?? []) push('prestamos', l.id, l)
   for (const p of data.projects ?? []) push('proyectos', p.id, p)
   for (const e of data.projectEntries ?? []) push('proyectoMovimientos', e.id, e)
+  for (const b of data.savingsBoxes ?? []) push('cajasAhorro', b.id, b)
 
   await commitInBatches(ops)
 }

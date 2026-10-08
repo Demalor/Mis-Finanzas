@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useAuth } from '../firebase/useAuth'
-import { useData } from '../context/useData'
 import { MonthBalanceWidget } from './widgets/MonthBalanceWidget'
 import { AccountBalanceWidget } from './widgets/AccountBalanceWidget'
 import { AccountFlowWidget } from './widgets/AccountFlowWidget'
@@ -12,10 +11,7 @@ import { QuickPayWidget } from './widgets/QuickPayWidget'
 import { SavingsBoxWidget } from './widgets/SavingsBoxWidget'
 import { WidgetPickerModal } from './widgets/WidgetPickerModal'
 import { WidgetConfigModal } from './widgets/WidgetConfigModal'
-import { ConfirmDialog } from './ConfirmDialog'
-import { accountBalance, reservedForAccount } from '../utils/calculations'
-import { todayISO } from '../utils/date'
-import type { Currency, DashboardWidgetConfig, DashboardWidgetType, SavingsBoxEntry } from '../types/models'
+import type { Currency, DashboardWidgetConfig, DashboardWidgetType } from '../types/models'
 
 const MAX_WIDGETS = 16
 
@@ -29,11 +25,9 @@ function widgetsPorDefecto(currency: Currency): DashboardWidgetConfig[] {
 
 export function WidgetsPanel({ preferredCurrency }: { preferredCurrency: Currency }) {
   const { profile, updateDashboardWidgets } = useAuth()
-  const { accounts, movements, transfers } = useData()
   const widgets = profile?.dashboardWidgets ?? widgetsPorDefecto(preferredCurrency)
   const [pickerSlot, setPickerSlot] = useState<number | null>(null)
   const [configuring, setConfiguring] = useState<{ slot: number; type: DashboardWidgetType; config?: DashboardWidgetConfig } | null>(null)
-  const [removingSlot, setRemovingSlot] = useState<number | null>(null)
   // Los controles de cada widget solo salen en modo organizar: con hasta 16
   // widgets en celdas pequeñas, tenerlos siempre encima tapa el contenido.
   const [organizando, setOrganizando] = useState(false)
@@ -77,20 +71,8 @@ export function WidgetsPanel({ preferredCurrency }: { preferredCurrency: Currenc
   }
 
   async function removeAt(slot: number) {
-    setRemovingSlot(null)
     setMoviendo(null)
     await guardar(widgets.filter((_, i) => i !== slot))
-  }
-
-  // Una caja de ahorro asociada a una cuenta representa plata real apartada:
-  // quitarla no debe borrar esa reserva sin confirmar primero.
-  function requestRemove(slot: number) {
-    const config = widgets[slot]
-    if (config.type === 'savingsBox' && config.box.accountId && config.box.current > 0) {
-      setRemovingSlot(slot)
-    } else {
-      removeAt(slot)
-    }
   }
 
   function handlePick(type: DashboardWidgetType) {
@@ -161,7 +143,7 @@ export function WidgetsPanel({ preferredCurrency }: { preferredCurrency: Currenc
                         </button>
                       )}
                       <button
-                        onClick={() => requestRemove(slot)}
+                        onClick={() => removeAt(slot)}
                         aria-label="Quitar widget"
                         className="w-6 h-6 flex items-center justify-center rounded-full bg-[var(--color-muted)] hover:bg-[var(--color-expense-soft)] text-[var(--fs-2xs)]"
                       >
@@ -192,36 +174,7 @@ export function WidgetsPanel({ preferredCurrency }: { preferredCurrency: Currenc
               {config.type === 'currencyBreakdown' && <CurrencyBreakdownWidget />}
               {config.type === 'combinedTotal' && <CombinedTotalWidget />}
               {config.type === 'quickPay' && <QuickPayWidget config={config} />}
-              {config.type === 'savingsBox' &&
-                (() => {
-                  const linkedAccount = config.box.accountId ? accounts.find((a) => a.id === config.box.accountId) : undefined
-                  // reservedForAccount ya cuenta lo que esta misma caja tiene
-                  // reservado, así que lo disponible es justo lo no reservado.
-                  const accountAvailable = linkedAccount
-                    ? accountBalance(linkedAccount, movements, transfers) - reservedForAccount(widgets, linkedAccount.id)
-                    : undefined
-                  return (
-                    <SavingsBoxWidget
-                      box={config.box}
-                      accountName={linkedAccount?.nombre}
-                      accountAvailable={accountAvailable}
-                      accounts={accounts}
-                      onContribute={(delta, originAccountId) => {
-                        // El monto guardado nunca baja de 0, así que el movimiento
-                        // realmente aplicado puede ser menor al pedido al retirar.
-                        const current = Math.max(0, config.box.current + delta)
-                        const aplicado = current - config.box.current
-                        const entry: SavingsBoxEntry = { date: todayISO(), delta: aplicado }
-                        // En una caja atada a una cuenta el origen es esa cuenta;
-                        // en una independiente, lo que haya dicho la persona.
-                        const origen = config.box.accountId ?? originAccountId
-                        if (origen && aplicado > 0) entry.accountId = origen
-                        const history = [...(config.box.history ?? []), entry]
-                        saveAt(slot, { ...config, box: { ...config.box, current, history } })
-                      }}
-                    />
-                  )
-                })()}
+              {config.type === 'savingsBox' && <SavingsBoxWidget boxId={config.boxId ?? config.id} />}
             </div>
           )
         })}
@@ -268,15 +221,6 @@ export function WidgetsPanel({ preferredCurrency }: { preferredCurrency: Currenc
           onSave={(config) => saveAt(configuring.slot, config)}
         />
       )}
-
-      <ConfirmDialog
-        open={removingSlot !== null}
-        title="Quitar caja de ahorro"
-        message="Esta caja tiene plata apartada de una cuenta. Al quitarla, ese monto deja de estar reservado y vuelve a quedar disponible en la cuenta."
-        confirmLabel="Quitar"
-        onCancel={() => setRemovingSlot(null)}
-        onConfirm={() => removingSlot !== null && removeAt(removingSlot)}
-      />
     </div>
   )
 }

@@ -190,7 +190,6 @@ export interface UserProfile {
   activo: boolean
   creadoEn: number
   monedaPreferida?: Currency // para el total combinado de referencia
-  novedadesVistas?: number // última versión de "novedades" que ya vio
   ultimaConexion?: number // timestamp de la última vez que abrió la app
   dashboardWidgets?: DashboardWidgetConfig[] // panel de widgets personalizable en Inicio
   tourCompletado?: boolean // false solo en cuentas nuevas; ausente = no se le impone el tour
@@ -228,8 +227,21 @@ export interface SavingsBoxEntry {
   accountId?: string // de qué cuenta salió la plata (solo en aportes)
 }
 
-// Caja de ahorro independiente: no es una cuenta real ni genera movimientos,
-// es una libreta aparte con su propia moneda para no mezclar con cuentas reales.
+// Caja de ahorro (colección `cajasAhorro`). Si tiene `accountId`, `current` es
+// plata apartada dentro de esa cuenta: no genera movimientos, solo se descuenta
+// de su disponible. Sin cuenta es una libreta aparte con su propia moneda.
+export interface SavingsBox {
+  id: string
+  name: string
+  currency: Currency
+  target: number
+  current: number
+  accountId?: string
+  history: SavingsBoxEntry[]
+  createdAt: number
+}
+
+// Forma vieja: la caja vivía embebida en el widget. Solo se lee para migrarla.
 export interface SavingsBoxConfig {
   name: string
   currency: Currency
@@ -248,7 +260,8 @@ export type DashboardWidgetConfig =
   | { id: string; type: 'currencyBreakdown' }
   | { id: string; type: 'combinedTotal' }
   | { id: string; type: 'quickPay'; config: QuickPayConfig }
-  | { id: string; type: 'savingsBox'; box: SavingsBoxConfig }
+  // `boxId` apunta a la caja; `box` es legado (cajas de antes de la migración)
+  | { id: string; type: 'savingsBox'; boxId?: string; box?: SavingsBoxConfig }
 
 export interface InviteCode {
   code: string
@@ -272,4 +285,5 @@ export interface BackupData {
   loans?: Loan[]
   projects?: Project[]
   projectEntries?: ProjectEntry[]
+  savingsBoxes?: SavingsBox[]
 }

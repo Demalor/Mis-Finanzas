@@ -22,6 +22,7 @@ const Accounts = lazy(() => import('./pages/Accounts').then((m) => ({ default: m
 const Loans = lazy(() => import('./pages/Loans').then((m) => ({ default: m.Loans })))
 const AccountStatement = lazy(() => import('./pages/AccountStatement').then((m) => ({ default: m.AccountStatement })))
 const Projects = lazy(() => import('./pages/Projects').then((m) => ({ default: m.Projects })))
+const Savings = lazy(() => import('./pages/Savings').then((m) => ({ default: m.Savings })))
 
 function App() {
   return (
@@ -46,6 +47,7 @@ function App() {
                 <Route path="/movimientos" element={<MovementsList />} />
                 <Route path="/cuentas" element={<Accounts />} />
                 <Route path="/cuentas/:id" element={<AccountStatement />} />
+                <Route path="/ahorros" element={<Savings />} />
                 <Route path="/prestamos" element={<Loans />} />
                 <Route path="/proyectos" element={<Projects />} />
                 <Route path="/categorias" element={<Categories />} />

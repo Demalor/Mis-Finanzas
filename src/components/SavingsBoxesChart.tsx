@@ -5,10 +5,9 @@ import { SelectInput } from './FormControls'
 import { formatAmount } from '../utils/currency'
 import { monthLabelShort } from '../utils/date'
 import { savingsBoxBalanceAt, savingsOriginBreakdown } from '../utils/calculations'
-import type { SavingsBoxItem } from '../utils/calculations'
 import { colorAt } from '../utils/colors'
 import { DonutBreakdown } from './DonutBreakdown'
-import type { Account, Currency } from '../types/models'
+import type { Account, Currency, SavingsBox } from '../types/models'
 
 // Las cajas de ahorro no generan movimientos, así que no pueden salir en las
 // gráficas de ingresos/gastos: tienen su propia tarjeta con dos vistas —
@@ -23,7 +22,7 @@ export function SavingsBoxesChart({
   onSelect,
   compactTick,
 }: {
-  boxes: SavingsBoxItem[]
+  boxes: SavingsBox[]
   accounts: Account[]
   months: string[]
   displayCurrency: Currency
@@ -33,29 +32,29 @@ export function SavingsBoxesChart({
   onSelect: (id: string) => void
   compactTick: (v: number) => string
 }) {
-  const visibles = boxes.filter((b) => convert(b.box.current, b.box.currency) !== null)
+  const visibles = boxes.filter((b) => convert(b.current, b.currency) !== null)
   const selected = selectedId ? visibles.find((b) => b.id === selectedId) ?? null : null
 
   const comparison = visibles.map((b) => ({
-    name: b.box.name,
-    Actual: convert(b.box.current, b.box.currency) ?? 0,
-    Meta: convert(b.box.target, b.box.currency) ?? 0,
+    name: b.name,
+    Actual: convert(b.current, b.currency) ?? 0,
+    Meta: convert(b.target, b.currency) ?? 0,
   }))
 
   const evolution = selected
     ? months.map((m) => ({
         month: monthLabelShort(m),
-        Ahorrado: convert(savingsBoxBalanceAt(selected.box, m), selected.box.currency) ?? 0,
+        Ahorrado: convert(savingsBoxBalanceAt(selected, m), selected.currency) ?? 0,
       }))
     : []
 
-  const sinHistorial = !!selected && (selected.box.history ?? []).length === 0
+  const sinHistorial = !!selected && selected.history.length === 0
 
   // De dónde llegó la plata que hay hoy en la caja. Los aportes anteriores a
   // que se registrara el origen salen agrupados como "Sin registrar".
   const origen = selected
-    ? savingsOriginBreakdown(selected.box, accounts).flatMap((o, i) => {
-        const total = convert(o.total, selected.box.currency)
+    ? savingsOriginBreakdown(selected, accounts).flatMap((o, i) => {
+        const total = convert(o.total, selected.currency)
         return total === null ? [] : [{ id: o.id, label: o.label, color: colorAt(i), total }]
       })
     : []
@@ -74,7 +73,7 @@ export function SavingsBoxesChart({
             <option value="">Todas las cajas</option>
             {visibles.map((b) => (
               <option key={b.id} value={b.id}>
-                {b.box.name}
+                {b.name}
               </option>
             ))}
           </SelectInput>
@@ -85,13 +84,13 @@ export function SavingsBoxesChart({
         <EmptyState
           icon="🐷"
           title="No hay cajas de ahorro que mostrar"
-          message="Crea una caja desde el panel de Inicio, o cambia el filtro de moneda para ver las que ya tienes."
+          message="Crea una caja en la sección Ahorros, o cambia el filtro de moneda para ver las que ya tienes."
         />
       ) : selected ? (
         sinHistorial ? (
           <EmptyState
             icon="🕐"
-            title={`"${selected.box.name}" todavía no tiene historial`}
+            title={`"${selected.name}" todavía no tiene historial`}
             message="El historial se empezó a guardar hace poco: desde ahora, cada vez que agregues o retires de esta caja quedará registrado y podrás ver su evolución aquí."
           />
         ) : (

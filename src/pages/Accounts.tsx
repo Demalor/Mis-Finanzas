@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useData } from '../context/useData'
-import { useAuth } from '../firebase/useAuth'
 import { Card } from '../components/Card'
 import { Button } from '../components/Button'
 import { Modal } from '../components/Modal'
@@ -25,9 +24,7 @@ const TYPE_LABELS: Record<AccountType, { label: string; icon: string }> = {
 }
 
 export function Accounts() {
-  const { accounts, movements, transfers, addAccount, updateAccount, deleteAccount } = useData()
-  const { profile } = useAuth()
-  const widgets = profile?.dashboardWidgets ?? []
+  const { accounts, movements, transfers, addAccount, updateAccount, deleteAccount, savingsBoxes } = useData()
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<Account | null>(null)
   const [toDelete, setToDelete] = useState<Account | null>(null)
@@ -60,7 +57,7 @@ export function Accounts() {
                 key={a.id}
                 account={a}
                 balance={accountBalance(a, movements, transfers)}
-                reserved={reservedForAccount(widgets, a.id)}
+                reserved={reservedForAccount(savingsBoxes, a.id)}
                 onEdit={() => setEditing(a)}
                 onDelete={() => setToDelete(a)}
               />

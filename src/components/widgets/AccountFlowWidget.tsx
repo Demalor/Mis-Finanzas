@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import { useData } from '../../context/useData'
-import { useAuth } from '../../firebase/useAuth'
 import { accountBalance, reservedForAccount, movementsInMonth, totalsFor } from '../../utils/calculations'
 import { formatAmount } from '../../utils/currency'
 import { currentMonthKey } from '../../utils/date'
@@ -10,8 +9,7 @@ import { Card } from '../Card'
 // La barra compara ingreso contra gasto (verde vs rojo): dice en qué se fue
 // lo que se movió, no si estás ahorrando — para eso están los montos.
 export function AccountFlowWidget({ config }: { config: { accountId: string } }) {
-  const { accounts, movements, transfers } = useData()
-  const { profile } = useAuth()
+  const { accounts, movements, transfers, savingsBoxes } = useData()
   const month = currentMonthKey()
   const account = accounts.find((a) => a.id === config.accountId)
 
@@ -29,7 +27,7 @@ export function AccountFlowWidget({ config }: { config: { accountId: string } })
     )
   }
 
-  const reserved = reservedForAccount(profile?.dashboardWidgets ?? [], account.id)
+  const reserved = reservedForAccount(savingsBoxes, account.id)
   const disponible = accountBalance(account, movements, transfers) - reserved
   const movido = totals.income + totals.expense
   const pctIngreso = movido > 0 ? (totals.income / movido) * 100 : 0

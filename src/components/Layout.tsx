@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../firebase/useAuth'
 import { useTheme } from '../context/useTheme'
-import { NoveltiesModal } from './NoveltiesModal'
 import { Modal } from './Modal'
 
 const NAV_ITEMS = [
@@ -10,6 +9,7 @@ const NAV_ITEMS = [
   { to: '/movimientos', label: 'Movimientos', icon: '📋' },
   { to: '/agregar', label: 'Agregar', icon: '➕', highlight: true },
   { to: '/cuentas', label: 'Cuentas', icon: '👛' },
+  { to: '/ahorros', label: 'Ahorros', icon: '🐷' },
   { to: '/prestamos', label: 'Préstamos', icon: '🤝' },
   { to: '/proyectos', label: 'Proyectos', icon: '🍲' },
   { to: '/categorias', label: 'Organización', icon: '🗂️' },
@@ -33,7 +33,6 @@ export function Layout() {
 
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--color-bg)' }}>
-      <NoveltiesModal />
       {/* Sidebar - escritorio */}
       <aside className="hidden md:flex flex-col w-64 shrink-0 border-r border-[var(--color-border)] bg-[var(--color-surface)] px-[var(--sp-4)] py-[var(--sp-6)]">
         <div className="flex items-center px-3 mb-[var(--sp-6)]">

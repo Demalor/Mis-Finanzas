@@ -156,7 +156,8 @@ const TIPS = [
   { icon: '💱', text: 'Cada cuenta tiene su propia moneda — los totales nunca se mezclan entre monedas distintas.' },
   { icon: '🔁', text: 'Los movimientos que se repiten (arriendo, salario) se registran solos como "recurrentes".' },
   { icon: '🎯', text: 'Ponle un presupuesto mensual a cualquier categoría de gasto para no pasarte.' },
-  { icon: '🧩', text: 'En Inicio puedes armar tu propio panel de widgets: saldos, presupuestos, y hasta una caja de ahorro.' },
+  { icon: '🧩', text: 'En Inicio puedes armar tu propio panel de widgets: saldos, presupuestos y accesos a tus cajas de ahorro.' },
+  { icon: '🐷', text: 'En Ahorros creas cajas con una meta; si las asocias a una cuenta, lo apartado se descuenta de su disponible.' },
   { icon: '🌙', text: 'Cambia entre modo claro y oscuro desde Inicio o Configuración.' },
 ]
 

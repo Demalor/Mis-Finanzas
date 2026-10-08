@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams, Link } from 'react-router-dom'
 import { useData } from '../context/useData'
-import { useAuth } from '../firebase/useAuth'
 import { Card } from '../components/Card'
 import { Button } from '../components/Button'
 import { MovementRow } from '../components/MovementRow'
@@ -22,8 +21,7 @@ const TYPE_LABELS = {
 export function AccountStatement() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { accounts, movements, transfers, categories, deleteMovement } = useData()
-  const { profile } = useAuth()
+  const { accounts, movements, transfers, categories, deleteMovement, savingsBoxes } = useData()
   const [month, setMonth] = useState(currentMonthKey())
   const [toDelete, setToDelete] = useState<string | null>(null)
 
@@ -53,7 +51,7 @@ export function AccountStatement() {
   }
 
   const balance = accountBalance(account, movements, transfers)
-  const reserved = reservedForAccount(profile?.dashboardWidgets ?? [], account.id)
+  const reserved = reservedForAccount(savingsBoxes, account.id)
   const isCard = account.tipo === 'tarjeta_credito'
   const cupo = account.cupo ?? 0
 

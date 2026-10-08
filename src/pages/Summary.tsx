@@ -13,7 +13,7 @@ import { DonutBreakdown } from '../components/DonutBreakdown'
 import type { DonutSlice } from '../components/DonutBreakdown'
 import { formatAmount } from '../utils/currency'
 import { currentMonthKey, lastMonths, monthLabelShort, toMonthKey } from '../utils/date'
-import { movementsInMonth, categoryBreakdown, accountBreakdown, totalsFor, currencyOf, savingsBoxesOf } from '../utils/calculations'
+import { movementsInMonth, categoryBreakdown, accountBreakdown, totalsFor, currencyOf } from '../utils/calculations'
 import { colorAt } from '../utils/colors'
 import { fetchExchangeRate } from '../utils/exchangeRate'
 import { CURRENCIES } from '../types/models'
@@ -30,7 +30,7 @@ type CurrencyFilter = Currency | 'conjunto'
 const compactTick = (v: number) => (Math.abs(v) >= 1000 ? `${Math.round(v / 1000)}k` : `${v}`)
 
 export function Summary() {
-  const { movements, categories, accounts } = useData()
+  const { movements, categories, accounts, savingsBoxes: boxes } = useData()
   const { profile } = useAuth()
   const [tab, setTab] = useState<Tab>('graficos')
   const [month, setMonth] = useState(currentMonthKey())
@@ -144,7 +144,6 @@ export function Summary() {
     [months, filteredMovements]
   )
 
-  const boxes = useMemo(() => savingsBoxesOf(profile?.dashboardWidgets ?? []), [profile?.dashboardWidgets])
 
   const sufijoMoneda = conjunto ? ` · ${displayCurrency} aprox.` : availableCurrencies.length > 1 ? ` · ${displayCurrency}` : ''
 

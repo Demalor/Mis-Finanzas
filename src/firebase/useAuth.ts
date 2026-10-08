@@ -19,7 +19,6 @@ export interface AuthContextValue {
   completeGoogleLink: (password: string) => Promise<boolean>
   signOut: () => Promise<void>
   clearError: () => void
-  markNoveltiesSeen: (version: number) => Promise<void>
   updateDashboardWidgets: (widgets: DashboardWidgetConfig[]) => Promise<void>
   completeTour: () => Promise<void>
   updateResumenFijoOculto: (oculto: boolean) => Promise<void>
